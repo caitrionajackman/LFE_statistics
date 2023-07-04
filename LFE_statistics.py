@@ -6,11 +6,13 @@ Created on Friday June 23rd 2023
 """
 import matplotlib.ticker as mticker 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 import numpy as np
 import pandas as pd
 import matplotlib.dates as mdates
 from bisect import bisect_left
 import configparser
+from tqdm import tqdm
 
 def main():
     #SORT CONFIG FILE LATER
@@ -38,17 +40,21 @@ def main():
         LFE_secs.append(LFE_duration[i].total_seconds())
 
 
-    PlotDurationHistogram(LFE_secs)
+    # PlotDurationHistogram(LFE_secs)
 
     #Next want to explore some manual inspection of the longest LFEs to see if they're "real"
-    InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration)
+    # InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration)
 
     print("Next step is to plot residence time")
     #Make a function to plot residence time (See Charlie example code for Mercury)
     #This needs to read in Cassini trajectory data first - from Elizabeth other code
     #Then take in the LFE list and plot them over each other
-    ResidencePlots()
+    print("Loading trajectories...")
+    trajectories = pd.read_csv(input_data_fp + "cassini_output/trajectorytotal.csv", parse_dates=["datetime_ut"])
+    ResidencePlots(trajectories, LFE_df, z_bounds=[-100, 100])
     
+
+
 def PlotDurationHistogram(LFE_secs):
     fig, ax = plt.subplots(1, tight_layout=True, sharey = True)
     ax.hist(np.array(LFE_secs)/(60.*24.),bins=np.linspace(0,250,126))
@@ -75,8 +81,67 @@ def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
     #Want to be able to look at these spectrograms to see if any need to be removed as outliers/unphysical
 
 
-def ResidencePlots():
-    print("")
+def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=10, r_bins=10, theta_bins=20):
+    times = trajectories_df["datetime_ut"]
+    x = trajectories_df["xpos_ksm"]
+    y = trajectories_df["ypos_ksm"]
+    z = trajectories_df["zpos_ksm"]
+
+    spacecraft_r, spacecraft_theta, spacecraft_z = CartesiansToCylindrical(x, y, z)
+    
+    mesh_outer_edges={
+        "r": (np.arange(1, r_bins+1)*max_r)/r_bins, # ranging from 0 + bin size to max_r
+        "theta": (np.arange(1, theta_bins+1)*np.pi)/(theta_bins/2) - np.pi # ranging from -pi + binsize to pi
+    }
+    mesh_inner_edges={
+        "r": (np.arange(0, r_bins)*max_r)/r_bins, # ranging from 0 to max_r - bin size
+        "theta": (np.arange(0, theta_bins)*np.pi)/(theta_bins/2) - np.pi # ranging from -pi to pi - bin size
+    }
+
+    print("Comparing spacecraft location to bins")
+    timeSpentInBin = np.zeros((r_bins, theta_bins))
+    for mesh_r in tqdm(range(len(mesh_outer_edges["r"])), desc="r"):
+        for mesh_theta in tqdm(range(len(mesh_outer_edges["theta"])), desc="theta", leave=False):
+            # Determines at what time indices is the spacecraft within the current bin
+            time_indices_in_region = np.where((spacecraft_r <= mesh_outer_edges["r"][mesh_r]) & (spacecraft_r > mesh_inner_edges["r"][mesh_r]) &\
+                         (spacecraft_theta <= mesh_outer_edges["theta"][mesh_theta]) & (spacecraft_theta > mesh_inner_edges["theta"][mesh_theta]) &\
+                         (spacecraft_z <= np.max(z_bounds)) & (spacecraft_z > np.min(z_bounds)))[0]
+
+            # Get the time spent in the current bin in minutes
+            timeInRegion = len(time_indices_in_region)
+            timeSpentInBin[mesh_r][mesh_theta] = timeInRegion
+
+    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    pc = ax.pcolormesh(mesh_outer_edges["theta"], mesh_outer_edges["r"], timeSpentInBin/60)
+
+    PlotPlanetCirc(ax)
+
+    fig.colorbar(pc, label="hours")
+
+    ax.set_xlabel("Theta ($^\circ$)")
+    ax.set_title("Residence Time")
+
+    rlabels = ax.get_ymajorticklabels()
+    for label in rlabels:
+        label.set_color('lightgrey')
+
+    label_position=ax.get_rlabel_position()
+    ax.text(np.radians(label_position+10),ax.get_rmax()/2.,'R (R$_S$)', rotation=label_position,ha='center',va='center', color="lightgrey")
+    
+    plt.show()
+
+def PlotPlanetCirc(ax, radius=1):
+    daySide = Rectangle((3*np.pi/2, 0), width=180, height=radius, color="white")
+    nightSide = Rectangle((np.pi/2, 0), width=np.pi, height=radius, color="black")
+
+    for rect in [daySide, nightSide]:
+        # ax.add_patch(rect)
+
+
+def CartesiansToCylindrical(x, y, z):
+    r = np.sqrt(x**2 + y**2)
+    theta = np.arctan2(y, x)
+    return (r, theta, z)
 
 
 if __name__ == "__main__":
