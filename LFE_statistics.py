@@ -19,7 +19,8 @@ def main():
     #input_data_fp = config['filepaths']['input_data']
     #output_data_fp= config['filepaths']['output_data']
 
-    input_data_fp='C:/Users/Local Admin/Documents/Data'
+    # input_data_fp='C:/Users/Local Admin/Documents/Data'
+    input_data_fp = "./../data/"
 
     #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
     print('First step is to read in the LFE list')
@@ -36,10 +37,11 @@ def main():
     for i in range(np.array(LFE_duration).size):
         LFE_secs.append(LFE_duration[i].total_seconds())
 
+
     PlotDurationHistogram(LFE_secs)
 
     #Next want to explore some manual inspection of the longest LFEs to see if they're "real"
-    InspectLongestLFEs(LFE_df)
+    InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration)
 
     print("Next step is to plot residence time")
     #Make a function to plot residence time (See Charlie example code for Mercury)
@@ -60,8 +62,10 @@ def PlotDurationHistogram(LFE_secs):
     print(np.mean(np.array(LFE_secs)/(60.*24.)))
     #perhaps overplot these as vertical lines
 
+    plt.show()
 
-def InspectLongestLFEs(LFD_df):
+
+def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
     LFE_df['LFE_duration']=LFE_duration
     LFE_df['LFE_secs']=LFE_secs
 
@@ -72,6 +76,7 @@ def InspectLongestLFEs(LFD_df):
 
 
 def ResidencePlots():
+    print("")
 
 
 if __name__ == "__main__":
