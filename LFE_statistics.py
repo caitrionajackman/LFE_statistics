@@ -81,7 +81,7 @@ def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
     #Want to be able to look at these spectrograms to see if any need to be removed as outliers/unphysical
 
 
-def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=10, r_bins=10, theta_bins=20):
+def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=5, r_bins=20, theta_bins=40):
     times = trajectories_df["datetime_ut"]
     x = trajectories_df["xpos_ksm"]
     y = trajectories_df["ypos_ksm"]
@@ -90,16 +90,16 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=10, r_bins=10, theta
     spacecraft_r, spacecraft_theta, spacecraft_z = CartesiansToCylindrical(x, y, z)
     
     mesh_outer_edges={
-        "r": (np.arange(1, r_bins+1)*max_r)/r_bins, # ranging from 0 + bin size to max_r
+        "r": (np.arange(2, r_bins+2)*max_r)/r_bins, # ranging from 2 + bin size to max_r
         "theta": (np.arange(1, theta_bins+1)*np.pi)/(theta_bins/2) - np.pi # ranging from -pi + binsize to pi
     }
     mesh_inner_edges={
-        "r": (np.arange(0, r_bins)*max_r)/r_bins, # ranging from 0 to max_r - bin size
-        "theta": (np.arange(0, theta_bins)*np.pi)/(theta_bins/2) - np.pi # ranging from -pi to pi - bin size
+        "r": (np.arange(1, r_bins+2)*max_r)/r_bins, # ranging from 1 to max_r - bin size
+        "theta": (np.arange(0, theta_bins+1)*np.pi)/(theta_bins/2) - np.pi # ranging from -pi to pi - bin size
     }
 
     print("Comparing spacecraft location to bins")
-    timeSpentInBin = np.zeros((r_bins, theta_bins))
+    timeSpentInBin = np.zeros((r_bins+1, theta_bins+1))
     for mesh_r in tqdm(range(len(mesh_outer_edges["r"])), desc="r"):
         for mesh_theta in tqdm(range(len(mesh_outer_edges["theta"])), desc="theta", leave=False):
             # Determines at what time indices is the spacecraft within the current bin
@@ -111,10 +111,11 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=10, r_bins=10, theta
             timeInRegion = len(time_indices_in_region)
             timeSpentInBin[mesh_r][mesh_theta] = timeInRegion
 
-    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    pc = ax.pcolormesh(mesh_outer_edges["theta"], mesh_outer_edges["r"], timeSpentInBin/60)
+    # Shading flat requires removing last point
+    timeSpentInBin = timeSpentInBin[:-1,:-1]
 
-    PlotPlanetCirc(ax)
+    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    pc = ax.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], timeSpentInBin/60, shading="flat")
 
     fig.colorbar(pc, label="hours")
 
@@ -130,12 +131,6 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=10, r_bins=10, theta
     
     plt.show()
 
-def PlotPlanetCirc(ax, radius=1):
-    daySide = Rectangle((3*np.pi/2, 0), width=180, height=radius, color="white")
-    nightSide = Rectangle((np.pi/2, 0), width=np.pi, height=radius, color="black")
-
-    for rect in [daySide, nightSide]:
-        # ax.add_patch(rect)
 
 
 def CartesiansToCylindrical(x, y, z):
