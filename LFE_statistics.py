@@ -35,8 +35,19 @@ def main():
     LFE_secs=[]
     for i in range(np.array(LFE_duration).size):
         LFE_secs.append(LFE_duration[i].total_seconds())
-    
 
+    PlotDurationHistogram(LFE_secs)
+
+    #Next want to explore some manual inspection of the longest LFEs to see if they're "real"
+    InspectLongestLFEs(LFE_df)
+
+    print("Next step is to plot residence time")
+    #Make a function to plot residence time (See Charlie example code for Mercury)
+    #This needs to read in Cassini trajectory data first - from Elizabeth other code
+    #Then take in the LFE list and plot them over each other
+    ResidencePlots()
+    
+def PlotDurationHistogram(LFE_secs):
     fig, ax = plt.subplots(1, tight_layout=True, sharey = True)
     ax.hist(np.array(LFE_secs)/(60.*24.),bins=np.linspace(0,250,126))
     ax.set_title('Histogram of duration of LFEs across Cassini mission')
@@ -49,9 +60,8 @@ def main():
     print(np.mean(np.array(LFE_secs)/(60.*24.)))
     #perhaps overplot these as vertical lines
 
-    ############################
-    #Next want to explore some manual inspection of the longest LFEs to see if they're "real"
 
+def InspectLongestLFEs(LFD_df):
     LFE_df['LFE_duration']=LFE_duration
     LFE_df['LFE_secs']=LFE_secs
 
@@ -61,12 +71,8 @@ def main():
     #Want to be able to look at these spectrograms to see if any need to be removed as outliers/unphysical
 
 
+def ResidencePlots():
 
-    ############################
-    print("Next step is to plot residence time")
-    #Make a function to plot residence time (See Charlie example code for Mercury)
-    #This needs to read in Cassini trajectory data first - from Elizabeth other code
-    #Then take in the LFE list and plot them over each other
 
 if __name__ == "__main__":
     main()
