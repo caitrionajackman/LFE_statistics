@@ -90,11 +90,11 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=5, r_bins=20, theta_
     spacecraft_r, spacecraft_theta, spacecraft_z = CartesiansToCylindrical(x, y, z)
     
     mesh_outer_edges={
-        "r": (np.arange(2, r_bins+2)*max_r)/r_bins, # ranging from 2 + bin size to max_r
+        "r": (np.arange(1, r_bins+1)*max_r)/r_bins, # ranging from 2 + bin size to max_r
         "theta": (np.arange(1, theta_bins+1)*np.pi)/(theta_bins/2) - np.pi # ranging from -pi + binsize to pi
     }
     mesh_inner_edges={
-        "r": (np.arange(1, r_bins+2)*max_r)/r_bins, # ranging from 1 to max_r - bin size
+        "r": (np.arange(0, r_bins+1)*max_r)/r_bins, # ranging from 1 to max_r - bin size
         "theta": (np.arange(0, theta_bins+1)*np.pi)/(theta_bins/2) - np.pi # ranging from -pi to pi - bin size
     }
 
