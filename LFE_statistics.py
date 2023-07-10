@@ -6,7 +6,8 @@ Created on Friday June 23rd 2023
 """
 import matplotlib.ticker as mticker 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
+import matplotlib.patches as patches
+from mpl_toolkits import axes_grid1
 import numpy as np
 import pandas as pd
 import matplotlib.dates as mdates
@@ -51,7 +52,7 @@ def main():
     #Then take in the LFE list and plot them over each other
     print("Loading trajectories...")
     trajectories = pd.read_csv(input_data_fp + "cassini_output/trajectorytotal.csv", parse_dates=["datetime_ut"])
-    ResidencePlots(trajectories, LFE_df, z_bounds=[-100, 100])
+    ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30])
     
 
 
@@ -81,14 +82,19 @@ def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
     #Want to be able to look at these spectrograms to see if any need to be removed as outliers/unphysical
 
 
-def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=5, r_bins=20, theta_bins=40):
-    times = trajectories_df["datetime_ut"]
+def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, theta_bins=24):
+
+    r_bins = int(max_r / r_bin_size)
+
+    spacecraft_times = trajectories_df["datetime_ut"]
     x = trajectories_df["xpos_ksm"]
     y = trajectories_df["ypos_ksm"]
     z = trajectories_df["zpos_ksm"]
 
     spacecraft_r, spacecraft_theta, spacecraft_z = CartesiansToCylindrical(x, y, z)
-    
+
+    start_times, end_times = (LFE_df["start"], LFE_df["end"])
+
     mesh_outer_edges={
         "r": (np.arange(1, r_bins+1)*max_r)/r_bins, # ranging from 2 + bin size to max_r
         "theta": (np.arange(1, theta_bins+1)*np.pi)/(theta_bins/2) - np.pi # ranging from -pi + binsize to pi
@@ -97,6 +103,20 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=5, r_bins=20, theta_
         "r": (np.arange(0, r_bins+1)*max_r)/r_bins, # ranging from 1 to max_r - bin size
         "theta": (np.arange(0, theta_bins+1)*np.pi)/(theta_bins/2) - np.pi # ranging from -pi to pi - bin size
     }
+
+    print("Determining LFE locations")
+
+    """
+    closest_times = []
+    for lfe_time in tqdm(start_times, total=len(start_times)):
+        differences = np.subtract(spacecraft_times, lfe_time)
+        closet_time = np.min(abs(differences))
+        closest_times.append(closet_time)
+        
+    print(closest_times)
+
+    return
+    """
 
     print("Comparing spacecraft location to bins")
     timeSpentInBin = np.zeros((r_bins+1, theta_bins+1))
@@ -107,30 +127,66 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=5, r_bins=20, theta_
                          (spacecraft_theta <= mesh_outer_edges["theta"][mesh_theta]) & (spacecraft_theta > mesh_inner_edges["theta"][mesh_theta]) &\
                          (spacecraft_z <= np.max(z_bounds)) & (spacecraft_z > np.min(z_bounds)))[0]
 
+
             # Get the time spent in the current bin in minutes
             timeInRegion = len(time_indices_in_region)
+            if timeInRegion == 0: timeInRegion = np.nan
             timeSpentInBin[mesh_r][mesh_theta] = timeInRegion
 
     # Shading flat requires removing last point
     timeSpentInBin = timeSpentInBin[:-1,:-1]
 
-    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    pc = ax.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], timeSpentInBin/60, shading="flat")
+    fig = plt.figure()
 
-    fig.colorbar(pc, label="hours")
+    # setting the axis limits in [left, bottom, width, height]
+    cartesian_rectangle = [0.2, 0.2, 0.6, 0.6]
+    polar_rectangle = cartesian_rectangle # [0.3, 0.3, 0.4, 0.4]
 
-    ax.set_xlabel("Theta ($^\circ$)")
-    ax.set_title("Residence Time")
+    ax_cartesian = fig.add_subplot(cartesian_rectangle, zorder=10)
+    ax_cartesian.patch.set_alpha(0)
+    ax_polar = fig.add_axes(polar_rectangle, polar=True, zorder=-10)
 
-    rlabels = ax.get_ymajorticklabels()
-    for label in rlabels:
-        label.set_color('lightgrey')
+    pc = ax_polar.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], timeSpentInBin/60, shading="flat")
 
-    label_position=ax.get_rlabel_position()
-    ax.text(np.radians(label_position+10),ax.get_rmax()/2.,'R (R$_S$)', rotation=label_position,ha='center',va='center', color="lightgrey")
-    
+    # leftRect = patches.Rectangle((cartesian_rectangle[0]-0.2, cartesian_rectangle[1]-0.2), 0.2, 0.7, linewidth=1, fill=True, facecolor='white', zorder=0, transform=fig.transFigure, figure=fig)
+    # bottomRect = patches.Rectangle((cartesian_rectangle[0]-0.2, cartesian_rectangle[1]-0.2), 0.7, 0.2, linewidth=1, fill=True, facecolor='white', zorder=0, transform=fig.transFigure, figure=fig)
+    # topRect = patches.Rectangle((cartesian_rectangle[0]-0.2, cartesian_rectangle[1]+cartesian_rectangle[3]), 0.7, 0.2, linewidth=1, fill=True, facecolor='white', zorder=0, transform=fig.transFigure, figure=fig)
+    # rightRect = patches.Rectangle((cartesian_rectangle[0]+cartesian_rectangle[2], cartesian_rectangle[1]-0.2), 0.2, 0.7, linewidth=1, fill=True, facecolor='white', zorder=0, transform=fig.transFigure, figure=fig)
+    # fig.patches.extend([leftRect, bottomRect, topRect, rightRect])
+
+    polar_axes = [ax_polar]
+    cartesian_axes = [ax_cartesian]
+
+    for polar_axis, cartesian_axis in zip(polar_axes, cartesian_axes):
+        polar_grid_ticks_r = np.linspace(0, max_r, r_bins+1)
+        polar_grid_ticks_theta = np.linspace(0, 2*np.pi, theta_bins+1)
+
+        polar_axis.set_xticklabels('')
+        polar_axis.set_yticklabels('')
+
+        cartesian_axis.set_xticks(np.concatenate((np.negative(np.flip(polar_grid_ticks_r)[0:-1]), polar_grid_ticks_r)))
+        cartesian_axis.set_yticks(np.concatenate((np.negative(np.flip(polar_grid_ticks_r)[0:-1]), polar_grid_ticks_r)))
+
+        cartesian_axis.set_xlabel("X$_{KSM}$ (R$_S$)")
+        cartesian_axis.set_ylabel("Y$_{KSM}$ (R$_S$)")
+
+        polar_axis.grid(True, linestyle="dotted")
+        polar_axis.spines['polar'].set_visible(False)
+
+        cartesian_axis.set_aspect('equal', adjustable='box')
+        polar_axis.set_aspect('equal', adjustable='box')
+
+        cartesian_axis.set_title(f"Residence Time\n{z_bounds[0]} " + "(R$_S$) < Z$_{KSM}$ <" + f" {z_bounds[1]} (R$_S$)")
+
+
+    # divider1 = axes_grid1.make_axes_locatable(ax_cartesian)
+    # divider2 = axes_grid1.make_axes_locatable(ax_polar)
+    # cax1 = divider1.append_axes("right", size="3%", pad="2%")
+    # cax2 = divider2.append_axes("right", size="3%", pad="2%")
+    # cax2.axis("off")
+
+    # fig.colorbar(pc, label="hours", cax=cax1)
     plt.show()
-
 
 
 def CartesiansToCylindrical(x, y, z):
