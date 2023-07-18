@@ -133,7 +133,7 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
             if lfe_detections_in_region == 0: lfe_detections_in_region = np.nan
             lfe_detections_in_bin[mesh_r][mesh_theta] = lfe_detections_in_region
 
-            norm_detections_in_bin[mesh_r][mesh_theta] = lfe_detections_in_region / timeInRegion
+            norm_detections_in_bin[mesh_r][mesh_theta] = lfe_detections_in_region / (timeInRegion/60) # conver to per hour
             
 
     # Shading flat requires removing last point
@@ -168,7 +168,7 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     
     timeMesh = ax_polar.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], timeSpentInBin/60, cmap="viridis", shading="flat")
 
-    lfeMesh = ax_polar_lfe.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], lfe_detections_in_bin, cmap="plasma", shading="flat", zorder=-1)
+    lfeMesh = ax_polar_lfe.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], lfe_detections_in_bin, cmap="magma", shading="flat", zorder=-1)
     ax_polar_lfe.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], timeSpentInBin, cmap=ListedColormap(["lightgrey"]), shading="flat", zorder=-2)
 
     normMesh = ax_polar_norm.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], norm_detections_in_bin, cmap="RdPu_r", shading="flat", zorder=-1)
