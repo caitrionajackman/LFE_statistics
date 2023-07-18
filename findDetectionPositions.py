@@ -9,10 +9,11 @@ saturnRadius = 58232 # km
 spice.furnsh("./SPICE/cassini/metakernel_cassini.txt")
 spice.furnsh("./SPICE/cassini/cas_dyn_v03.tf")
 
-lfeDetections = pandas.read_csv("./../data/lfe_timestamps.csv")
+lfeDetections = pandas.read_csv("./../data/2004001_2017258_catalogue.csv").truncate(before=67)
 startTimes = lfeDetections["start"]
 endTimes = lfeDetections["end"]
 labels = lfeDetections["label"]
+probability = lfeDetections["probability"]
 
 durations = []
 for start, end in zip(startTimes, endTimes):
@@ -38,6 +39,7 @@ newData = {
     "end": endTimes,
     "duration": durations,
     "label": labels,
+    "probability": probability,
     "x_ksm": np.array(positions_Rs)[:,0],
     "y_ksm": np.array(positions_Rs)[:,1],
     "z_ksm": np.array(positions_Rs)[:,2],

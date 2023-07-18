@@ -43,7 +43,7 @@ def main():
         LFE_secs.append(LFE_duration[i].total_seconds())
 
 
-    # PlotDurationHistogram(LFE_secs)
+    PlotDurationHistogram(LFE_secs)
 
     #Next want to explore some manual inspection of the longest LFEs to see if they're "real"
     # InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration)
@@ -53,10 +53,10 @@ def main():
     #This needs to read in Cassini trajectory data first - from Elizabeth other code
     #Then take in the LFE list and plot them over each other
     print("Loading trajectories...")
-    # trajectories = pd.read_csv(input_data_fp + "cassini_output/trajectorytotal.csv", parse_dates=["datetime_ut"])
-    # ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30])
+    trajectories = pd.read_csv(input_data_fp + "cassini_output/trajectorytotal.csv", parse_dates=["datetime_ut"])
+    ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30])
     
-    PlotLfeDistributions(LFE_df)
+    PlotLfeDistributions(trajectories, LFE_df)
 
 
 def PlotDurationHistogram(LFE_secs):
@@ -170,7 +170,7 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     lfeMesh = ax_polar_lfe.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], lfe_detections_in_bin, cmap="magma", shading="flat", zorder=-1)
     ax_polar_lfe.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], timeSpentInBin, cmap=ListedColormap(["lightgrey"]), shading="flat", zorder=-2)
 
-    normMesh = ax_polar_norm.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], norm_detections_in_bin, cmap="RdPu_r", shading="flat", zorder=-1)
+    normMesh = ax_polar_norm.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], norm_detections_in_bin, cmap="plasma", shading="flat", zorder=-1)
     ax_polar_norm.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], timeSpentInBin, cmap=ListedColormap(["lightgrey"]), shading="flat", zorder=-2)
 
     
@@ -213,7 +213,7 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     # fig.colorbar(pc, label="hours")
     plt.show()
 
-def PlotLfeDistributions(LFE_df, split_by_duration=False):
+def PlotLfeDistributions(trajectories, LFE_df, split_by_duration=True):
     
     lfe_x, lfe_y, lfe_z = (LFE_df["x_ksm"], LFE_df["y_ksm"], LFE_df["z_ksm"])
     lfe_r, lfe_theta, lfe_z = CartesiansToCylindrical(lfe_x, lfe_y, lfe_z)
@@ -259,10 +259,10 @@ def PlotLfeDistributions(LFE_df, split_by_duration=False):
     for ax in axes:
         ax.set_ylabel("LFE Count")
         ax.margins(0)
+        ax.set_yscale("log")
 
     r_axis.set_xlabel("Radial Distance (R$_S$)")
 
-    lat_axis.set_yscale("log")
     lat_axis.set_xlabel("Latitude ($^\circ$)") # note latitude is measured with respect to the KSM frame i.e. tan(z_ksm/r)
 
     lt_axis.set_xlabel("Local Time")
