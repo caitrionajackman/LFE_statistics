@@ -14,7 +14,12 @@ startTimes = lfeDetections["start"]
 endTimes = lfeDetections["end"]
 labels = lfeDetections["label"]
 
+durations = []
+for start, end in zip(startTimes, endTimes):
+    start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S.%f")
+    end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S.%f")
 
+    durations.append((end - start).total_seconds())
 
 dates = [datetime.strptime(time, "%Y-%m-%d %H:%M:%S.%f") for time in startTimes]
 ets = [spice.datetime2et(date) for date in dates]
@@ -31,6 +36,7 @@ for position in positions:
 newData = {
     "start": startTimes,
     "end": endTimes,
+    "duration": durations,
     "label": labels,
     "x_ksm": np.array(positions_Rs)[:,0],
     "y_ksm": np.array(positions_Rs)[:,1],

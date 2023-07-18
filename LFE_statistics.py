@@ -17,6 +17,7 @@ import configparser
 from tqdm import tqdm
 
 def main():
+    plt.rcParams.update({'font.size': 12})
     #SORT CONFIG FILE LATER
     #config = configparser.ConfigParser()
     #config.read('configurations.ini')
@@ -52,9 +53,10 @@ def main():
     #This needs to read in Cassini trajectory data first - from Elizabeth other code
     #Then take in the LFE list and plot them over each other
     print("Loading trajectories...")
-    trajectories = pd.read_csv(input_data_fp + "cassini_output/trajectorytotal.csv", parse_dates=["datetime_ut"])
-    ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30])
+    # trajectories = pd.read_csv(input_data_fp + "cassini_output/trajectorytotal.csv", parse_dates=["datetime_ut"])
+    # ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30])
     
+    PlotLfeDistributions(LFE_df)
 
 
 def PlotDurationHistogram(LFE_secs):
@@ -143,9 +145,6 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
 
     fig = plt.figure()
 
-    # setting the axis limits in [left, bottom, width, height]
-    # cartesian_rectangle = [0.2, 0.2, 0.6, 0.6]
-    # polar_rectangle = cartesian_rectangle # [0.3, 0.3, 0.4, 0.4]
 
     ax_cartesian = fig.add_subplot(1, 3, 1, zorder=10)
     ax_cartesian.patch.set_alpha(0)
@@ -213,6 +212,64 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
 
     # fig.colorbar(pc, label="hours")
     plt.show()
+
+def PlotLfeDistributions(LFE_df, split_by_duration=False):
+    
+    lfe_x, lfe_y, lfe_z = (LFE_df["x_ksm"], LFE_df["y_ksm"], LFE_df["z_ksm"])
+    lfe_r, lfe_theta, lfe_z = CartesiansToCylindrical(lfe_x, lfe_y, lfe_z)
+
+    lfe_lat = []
+    for r, z in zip(lfe_r, lfe_z):
+        lfe_lat.append(np.tan(z/r))
+
+    lfe_lt = []
+    for longitude_rads in lfe_theta:
+        longitude_degs = longitude_rads*180/np.pi
+        lfe_lt.append(((longitude_degs+180)*24/360) % 24)
+
+    fig, axes = plt.subplots(3, 1)
+    (r_axis, lat_axis, lt_axis) = axes
+
+    if not split_by_duration:
+
+        r_axis.hist(lfe_r, bins=np.arange(0, 155, 1), color="indianred")
+
+        lat_axis.hist(lfe_lat, bins=np.arange(-15, 15, 0.5), color="indianred")
+
+        lt_axis.hist(lfe_lt, bins=np.arange(0, 24, 0.1), color="indianred")
+
+    else:
+        # returns the indices
+        short_LFEs = np.where(LFE_df["duration"] <= 11*60*60) # less than 100 hours
+        long_LFEs = np.where(LFE_df["duration"] > 11*60*60) # less than 100 hours
+
+        r_axis.hist([lfe_r[i] for i in short_LFEs], bins=np.arange(0, 155, 1), color="indianred", label="duration < 11 hours")
+        r_axis.hist([lfe_r[i] for i in long_LFEs], bins=np.arange(0, 155, 1), color="mediumturquoise", label="duration > 11 hours")
+
+        lat_axis.hist([np.array(lfe_lat)[i] for i in short_LFEs], bins=np.arange(-15, 15, 0.5), color="indianred", label="duration < 11 hours")
+        lat_axis.hist([np.array(lfe_lat)[i] for i in long_LFEs], bins=np.arange(-15, 15, 0.5), color="mediumturquoise", label="duration > 11 hours")
+
+        lt_axis.hist([np.array(lfe_lt)[i] for i in short_LFEs], bins=np.arange(0, 24, 0.1), color="indianred", label="duration < 11 hours")
+        lt_axis.hist([np.array(lfe_lt)[i] for i in long_LFEs], bins=np.arange(0, 24, 0.1), color="mediumturquoise", label="duration > 11 hours")
+        
+        lt_axis.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
+
+
+
+    for ax in axes:
+        ax.set_ylabel("LFE Count")
+        ax.margins(0)
+
+    r_axis.set_xlabel("Radial Distance (R$_S$)")
+
+    lat_axis.set_yscale("log")
+    lat_axis.set_xlabel("Latitude ($^\circ$)") # note latitude is measured with respect to the KSM frame i.e. tan(z_ksm/r)
+
+    lt_axis.set_xlabel("Local Time")
+
+    fig.tight_layout()
+    plt.show()
+
 
 
 def CartesiansToCylindrical(x, y, z):
