@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas
 import numpy as np
 
-saturnRadius = 58232 # km
+saturnRadius = 60268 # km
 
 spice.furnsh("./SPICE/cassini/metakernel_cassini.txt")
 spice.furnsh("./SPICE/cassini/cas_dyn_v03.tf")
@@ -18,7 +18,7 @@ probability = lfeDetections["probability"]
 durations = []
 for start, end in zip(startTimes, endTimes):
     start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S.%f")
-    end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S.%f")
+end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S.%f")
 
     durations.append((end - start).total_seconds())
 
