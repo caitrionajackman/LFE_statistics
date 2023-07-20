@@ -18,6 +18,8 @@ from tqdm import tqdm
 
 def main():
     plt.rcParams.update({'font.size': 12})
+
+    unet=True
     #SORT CONFIG FILE LATER
     #config = configparser.ConfigParser()
     #config.read('configurations.ini')
@@ -43,7 +45,7 @@ def main():
         LFE_secs.append(LFE_duration[i].total_seconds())
 
 
-    # PlotDurationHistogram(LFE_secs)
+    PlotDurationHistogram(LFE_secs, unet=unet)
 
     #Next want to explore some manual inspection of the longest LFEs to see if they're "real"
     # InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration)
@@ -54,16 +56,21 @@ def main():
     #Then take in the LFE list and plot them over each other
     print("Loading trajectories...")
     trajectories = pd.read_csv(input_data_fp + "cassini_output/trajectorytotal.csv", parse_dates=["datetime_ut"])
-    # ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30])
+    ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet)
     
-    PlotLfeDistributions(trajectories, LFE_df)
+    PlotLfeDistributions(trajectories, LFE_df, unet=unet)
 
 
 
-def PlotDurationHistogram(LFE_secs):
+def PlotDurationHistogram(LFE_secs, unet=True):
     fig, ax = plt.subplots(1, tight_layout=True, sharey = True)
     ax.hist(np.array(LFE_secs)/(60.*24.),bins=np.linspace(0,250,126))
-    ax.set_title('Histogram of duration of LFEs across Cassini mission')
+
+    if unet:
+        ax.set_title('Histogram of duration of LFEs across Cassini mission (UNET Output)')
+    else:
+        ax.set_title('Histogram of duration of LFEs across Cassini mission (Training Data)')
+
     ax.set_xlabel('LFE duration (hours)')
     ax.set_ylabel('# of LFEs')
     ax.set_xscale('log')
@@ -86,7 +93,7 @@ def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
     #Want to be able to look at these spectrograms to see if any need to be removed as outliers/unphysical
 
 
-def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, theta_bins=24):
+def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, theta_bins=24, unet=True):
 
     r_bins = int(max_r / r_bin_size)
 
@@ -157,7 +164,10 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     ax_cartesian_lfe.patch.set_alpha(0)
     ax_polar_lfe = fig.add_axes(ax_cartesian_lfe.get_position(), polar=True, zorder=-10)
     
-    ax_cartesian_lfe.set_title(f"LFE Detections\n{z_bounds[0]} " + "(R$_S$) < Z$_{KSM}$ <" + f" {z_bounds[1]} (R$_S$)")
+    if unet:
+        ax_cartesian_lfe.set_title(f"LFE Detections (UNET Output)\n{z_bounds[0]} " + "(R$_S$) < Z$_{KSM}$ <" + f" {z_bounds[1]} (R$_S$)")
+    else:
+        ax_cartesian_lfe.set_title(f"LFE Detections (Training Data)\n{z_bounds[0]} " + "(R$_S$) < Z$_{KSM}$ <" + f" {z_bounds[1]} (R$_S$)")
 
     ax_cartesian_norm = fig.add_subplot(1, 3, 3, zorder=10)
     ax_cartesian_norm.patch.set_alpha(0)
@@ -214,7 +224,7 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     # fig.colorbar(pc, label="hours")
     plt.show()
 
-def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-15, 15, 30), lt_hist_bins=np.linspace(0, 24, 48)):
+def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-20, 20, 40), lt_hist_bins=np.linspace(0, 24, 48), unet=True):
     
     fig, axes = plt.subplots(3, 1)
     (r_axis, lat_axis, lt_axis) = axes
@@ -309,6 +319,11 @@ def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist
     lt_axis.set_xlabel("Local Time")
     lt_axis.set_xticks(np.arange(0, 24+3, 3), minor=False)
     lt_axis.set_xticks(np.arange(0, 24+1, 1), minor=True)
+
+    if unet:
+        fig.suptitle("LFE Distributions (UNET Output)")
+    else:
+        fig.suptitle("LFE Distributions (Training Data)")
 
     fig.tight_layout()
     plt.show()

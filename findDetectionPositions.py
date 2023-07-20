@@ -18,7 +18,7 @@ probability = lfeDetections["probability"]
 durations = []
 for start, end in zip(startTimes, endTimes):
     start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S.%f")
-end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S.%f")
+    end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S.%f")
 
     durations.append((end - start).total_seconds())
 
@@ -46,4 +46,4 @@ newData = {
 }
 
 df = pandas.DataFrame(newData)
-df.to_csv("./../data/lfe_detections.csv")
+df.to_csv("./../data/lfe_detections_unet.csv")
