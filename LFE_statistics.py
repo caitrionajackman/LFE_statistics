@@ -43,7 +43,7 @@ def main():
         LFE_secs.append(LFE_duration[i].total_seconds())
 
 
-    PlotDurationHistogram(LFE_secs)
+    # PlotDurationHistogram(LFE_secs)
 
     #Next want to explore some manual inspection of the longest LFEs to see if they're "real"
     # InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration)
@@ -54,9 +54,10 @@ def main():
     #Then take in the LFE list and plot them over each other
     print("Loading trajectories...")
     trajectories = pd.read_csv(input_data_fp + "cassini_output/trajectorytotal.csv", parse_dates=["datetime_ut"])
-    ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30])
+    # ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30])
     
     PlotLfeDistributions(trajectories, LFE_df)
+
 
 
 def PlotDurationHistogram(LFE_secs):
@@ -213,8 +214,50 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     # fig.colorbar(pc, label="hours")
     plt.show()
 
-def PlotLfeDistributions(trajectories, LFE_df, split_by_duration=True):
+def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-15, 15, 30), lt_hist_bins=np.linspace(0, 24, 48)):
     
+    fig, axes = plt.subplots(3, 1)
+    (r_axis, lat_axis, lt_axis) = axes
+    # Define secondary axes for spacecraft time
+    
+    secondary_axes = [axis.twinx() for axis in axes]
+
+    r_secondary_axis, lat_secondary_axis, lt_secondary_axis = secondary_axes    
+
+    for axis in secondary_axes:
+        axis.set_ylabel("Normalised Time Spent")
+        axis.margins(0)
+        axis.set_ylim([0, 1])
+
+    x = trajectories_df["xpos_ksm"]
+    y = trajectories_df["ypos_ksm"]
+    z = trajectories_df["zpos_ksm"]
+
+    spacecraft_r, spacecraft_theta, spacecraft_z = CartesiansToCylindrical(x, y, z)
+    spacecraft_lat = []
+    for r, z in zip(spacecraft_r, spacecraft_z):
+        spacecraft_lat.append(np.tan(z/r))
+
+    spacecraft_lt = []
+    for longitude_rads in spacecraft_theta:
+        longitude_degs = longitude_rads*180/np.pi
+        spacecraft_lt.append(((longitude_degs+180)*24/360) % 24)
+
+    # Define spacecraft location histograms
+    r_frequency, r_hist = np.histogram(spacecraft_r, bins=r_hist_bins)
+    r_hist_bin_centers = 0.5*(r_hist[1:]+ r_hist[:-1])
+    
+    lat_frequency, lat_hist = np.histogram(spacecraft_lat, bins=lat_hist_bins)
+    lat_hist_bin_centers = 0.5*(lat_hist[1:]+ lat_hist[:-1])
+
+    lt_frequency, lt_hist = np.histogram(spacecraft_lt, bins=lt_hist_bins)
+    lt_hist_bin_centers = 0.5*(lt_hist[1:]+ lt_hist[:-1])
+
+    r_secondary_axis.plot(r_hist_bin_centers, r_frequency/np.max(r_frequency), color="black", label="Spacecraft Time")
+    lat_secondary_axis.plot(lat_hist_bin_centers, lat_frequency/np.max(lat_frequency), color="black", label="Spacecraft Time")
+    lt_secondary_axis.plot(lt_hist_bin_centers, lt_frequency/np.max(lt_frequency), color="black", label="Spacecraft Time")
+
+
     lfe_x, lfe_y, lfe_z = (LFE_df["x_ksm"], LFE_df["y_ksm"], LFE_df["z_ksm"])
     lfe_r, lfe_theta, lfe_z = CartesiansToCylindrical(lfe_x, lfe_y, lfe_z)
 
@@ -227,30 +270,28 @@ def PlotLfeDistributions(trajectories, LFE_df, split_by_duration=True):
         longitude_degs = longitude_rads*180/np.pi
         lfe_lt.append(((longitude_degs+180)*24/360) % 24)
 
-    fig, axes = plt.subplots(3, 1)
-    (r_axis, lat_axis, lt_axis) = axes
 
     if not split_by_duration:
 
-        r_axis.hist(lfe_r, bins=np.arange(0, 155, 1), color="indianred")
+        r_axis.hist(lfe_r, bins=r_hist_bins, color="indianred")
 
-        lat_axis.hist(lfe_lat, bins=np.arange(-15, 15, 0.5), color="indianred")
+        lat_axis.hist(lfe_lat, bins=lat_hist_bins, color="indianred")
 
-        lt_axis.hist(lfe_lt, bins=np.arange(0, 24, 0.1), color="indianred")
+        lt_axis.hist(lfe_lt, bins=lt_hist_bins, color="indianred")
 
     else:
         # returns the indices
         short_LFEs = np.where(LFE_df["duration"] <= 11*60*60) # less than 100 hours
         long_LFEs = np.where(LFE_df["duration"] > 11*60*60) # less than 100 hours
 
-        r_axis.hist([lfe_r[i] for i in short_LFEs], bins=np.arange(0, 155, 1), color="indianred", label="duration < 11 hours")
-        r_axis.hist([lfe_r[i] for i in long_LFEs], bins=np.arange(0, 155, 1), color="mediumturquoise", label="duration > 11 hours")
+        r_axis.hist([lfe_r[i] for i in short_LFEs], bins=r_hist_bins, color="indianred", label="duration < 11 hours")
+        r_axis.hist([lfe_r[i] for i in long_LFEs], bins=r_hist_bins, color="mediumturquoise", label="duration > 11 hours")
 
-        lat_axis.hist([np.array(lfe_lat)[i] for i in short_LFEs], bins=np.arange(-15, 15, 0.5), color="indianred", label="duration < 11 hours")
-        lat_axis.hist([np.array(lfe_lat)[i] for i in long_LFEs], bins=np.arange(-15, 15, 0.5), color="mediumturquoise", label="duration > 11 hours")
+        lat_axis.hist([np.array(lfe_lat)[i] for i in short_LFEs], bins=lat_hist_bins, color="indianred", label="duration < 11 hours")
+        lat_axis.hist([np.array(lfe_lat)[i] for i in long_LFEs], bins=lat_hist_bins, color="mediumturquoise", label="duration > 11 hours")
 
-        lt_axis.hist([np.array(lfe_lt)[i] for i in short_LFEs], bins=np.arange(0, 24, 0.1), color="indianred", label="duration < 11 hours")
-        lt_axis.hist([np.array(lfe_lt)[i] for i in long_LFEs], bins=np.arange(0, 24, 0.1), color="mediumturquoise", label="duration > 11 hours")
+        lt_axis.hist([np.array(lfe_lt)[i] for i in short_LFEs], bins=lt_hist_bins, color="indianred", label="duration < 11 hours")
+        lt_axis.hist([np.array(lfe_lt)[i] for i in long_LFEs], bins=lt_hist_bins, color="mediumturquoise", label="duration > 11 hours")
         
         lt_axis.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
 
@@ -266,6 +307,8 @@ def PlotLfeDistributions(trajectories, LFE_df, split_by_duration=True):
     lat_axis.set_xlabel("Latitude ($^\circ$)") # note latitude is measured with respect to the KSM frame i.e. tan(z_ksm/r)
 
     lt_axis.set_xlabel("Local Time")
+    lt_axis.set_xticks(np.arange(0, 24+3, 3), minor=False)
+    lt_axis.set_xticks(np.arange(0, 24+1, 1), minor=True)
 
     fig.tight_layout()
     plt.show()
