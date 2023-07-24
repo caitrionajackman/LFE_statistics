@@ -15,23 +15,28 @@ import matplotlib.dates as mdates
 from bisect import bisect_left
 import configparser
 from tqdm import tqdm
+from scipy.io import readsav
 
 def main():
     plt.rcParams.update({'font.size': 12})
 
     unet=True
     data_directory = "./../data/"
-    lfe_unet_data = "/lfe_detections_unet.csv" # Processed using findDetectionPositions.py
-    lfe_training_data = "/lfe_detections_training.csv" # "
+    lfe_unet_data = "lfe_detections_unet.csv" # Processed using findDetectionPositions.py
+    lfe_training_data = "lfe_detections_training.csv" # "
     trajectories_file = "cassini_output/trajectorytotal.csv" # Output from Beth's "Cassini_Plotting" repo
+    ppo_file = "mag_phases_2004_2017_final.sav"
+    LFE_phase_df = "lfe_with_phase.csv" # File saved by SavePPO()
 
     lfe_duration_split = 11 # measured in hours
 
     plot = {
         "duration_histograms": False,
         "inspect_longest_lfes": False,
-        "residence_time_multiplots": True,
-        "lfe_distributions": False
+        "residence_time_multiplots": False,
+        "lfe_distributions": False,
+        "ppo_save": False,
+        "ppo_plot": True
     }
 
     #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
@@ -67,7 +72,87 @@ def main():
     if plot["lfe_distributions"]:       
         PlotLfeDistributions(trajectories, LFE_df, unet=unet, scale="linear", long_lfe_cutoff=lfe_duration_split)
 
+    if plot["ppo_save"]:
+        SavePPO(data_directory + ppo_file, LFE_df, data_directory, "lfe_with_phase.csv")
 
+    if plot["ppo_plot"]:
+        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split)
+
+def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True):
+
+    data = pd.read_csv(file_path)
+
+    north = np.array(data["north phase"]) % 360
+    south = np.array(data["south phase"]) % 360
+
+    fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+    ax_north, ax_south = axes
+    
+    short_LFEs = np.where(LFE_df["duration"] <= long_lfe_cutoff*60*60)
+    long_LFEs = np.where(LFE_df["duration"] > long_lfe_cutoff*60*60)
+
+    ax_north.hist([north[i] for i in short_LFEs], bins=bins, color="indianred")
+    ax_north.hist([north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+
+    ax_south.hist([south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
+    ax_south.hist([south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+
+
+    ax_north.set_title("North")    
+    
+    ax_south.set_title("South")
+
+    for ax in fig.get_axes():
+        ax.set_ylabel("# of LFEs")
+        ax.set_xlabel("Phase ($^\circ$)")
+        ax.margins(x=0)
+        ax.set_xticks(bins[0::2])
+
+    if unet:
+        fig.suptitle("Northern and Southern PPO Phases (UNET Output)")
+    else:
+        fig.suptitle("Northern and Southern PPO Phases (Training Data)")
+
+    ax_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
+    plt.tight_layout()
+    plt.show()
+
+
+def SavePPO(file_path, LFE_df, data_directory, file_name):
+    print("Finding LFE Phase")
+
+    print(f"Loading {file_path}")
+    ppo_df = readsav(file_path)
+
+    south_time = ppo_df["south_model_time"] # minutes since 2004-01-01 00:00:00
+    south_phase = ppo_df["south_mag_phase"]
+
+    north_time = ppo_df["north_model_time"]
+    north_phase = ppo_df["north_mag_phase"]
+
+
+    doy2004_0 = pd.Timestamp(2004, 1, 1)
+
+    lfe_south_phase_indices = []
+    lfe_north_phase_indices = []
+    for i, lfe in tqdm(LFE_df.iterrows(), total=len(LFE_df)):
+        lfe_start_time = lfe["start"] # pandas timestamp
+        lfe_start_doy2004 = (lfe_start_time - doy2004_0).total_seconds() / 60 / 60 / 24 # days since 2004-01-01 00:00:00
+
+        # Find minimum time difference
+        south_index = (np.abs(south_time - lfe_start_doy2004)).argmin()
+        lfe_south_phase_indices.append(south_index)
+
+        north_index = (np.abs(north_time - lfe_start_doy2004)).argmin()
+        lfe_north_phase_indices.append(north_index)
+
+
+    LFE_df["south phase"] = np.array(south_phase)[lfe_south_phase_indices]
+    LFE_df["north phase"] = np.array(north_phase)[lfe_north_phase_indices]
+
+    print(f"Saving new csv file to {data_directory+file_name}")
+    LFE_df.to_csv(data_directory + file_name)
+                       
 
 def PlotDurationHistogram(LFE_secs, unet=True):
     fig, ax = plt.subplots(1, tight_layout=True, sharey = True, figsize=(8,8))
@@ -91,6 +176,7 @@ def PlotDurationHistogram(LFE_secs, unet=True):
     plt.legend()
 
     plt.show()
+
 
 
 def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
