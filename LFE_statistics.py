@@ -20,51 +20,58 @@ def main():
     plt.rcParams.update({'font.size': 12})
 
     unet=True
-    #SORT CONFIG FILE LATER
-    #config = configparser.ConfigParser()
-    #config.read('configurations.ini')
-    #input_data_fp = config['filepaths']['input_data']
-    #output_data_fp= config['filepaths']['output_data']
+    data_directory = "./../data/"
+    lfe_unet_data = "/lfe_detections_unet.csv" # Processed using findDetectionPositions.py
+    lfe_training_data = "/lfe_detections_training.csv" # "
+    trajectories_file = "cassini_output/trajectorytotal.csv" # Output from Beth's "Cassini_Plotting" repo
 
-    # input_data_fp='C:/Users/Local Admin/Documents/Data'
-    input_data_fp = "./../data/"
+    lfe_duration_split = 11 # measured in hours
+
+    plot = {
+        "duration_histograms": False,
+        "inspect_longest_lfes": False,
+        "residence_time_multiplots": True,
+        "lfe_distributions": False
+    }
 
     #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
-    print('First step is to read in the LFE list')
-    LFE_df = pd.read_csv(input_data_fp + '/lfe_detections_unet.csv',parse_dates=['start','end'])
-    #print(LFE_df) 
-    #start	end	label
-    #24/07/2004  20:41:27    25/07/2004  02:13:52    LFE
+    print('Reading in the LFE list')
+    
+    if unet is True:
+        LFE_df = pd.read_csv(data_directory + lfe_unet_data, parse_dates=['start','end'])
+
+    else:
+        LFE_df = pd.read_csv(data_directory + lfe_training_dataa, parse_dates=['start','end'])
+
 
     LFE_duration=LFE_df['end']-LFE_df['start']  #want this in minutes and to be smart about day/year boundaries
-    #print(LFE_duration[0:2])
-
 
     LFE_secs=[]
     for i in range(np.array(LFE_duration).size):
         LFE_secs.append(LFE_duration[i].total_seconds())
 
+    if plot["duration_histograms"]:
+        PlotDurationHistogram(LFE_secs, unet=unet)
 
-    PlotDurationHistogram(LFE_secs, unet=unet)
+    if plot["inspect_longest_lfes"]:
+        #Next want to explore some manual inspection of the longest LFEs to see if they're "real"
+        InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration)
 
-    #Next want to explore some manual inspection of the longest LFEs to see if they're "real"
-    # InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration)
+    if plot["residence_time_multiplots"] or plot["lfe_distributions"]:
+        print("Loading trajectories...")
+        trajectories = pd.read_csv(data_directory + trajectories_file, parse_dates=["datetime_ut"])
 
-    print("Next step is to plot residence time")
-    #Make a function to plot residence time (See Charlie example code for Mercury)
-    #This needs to read in Cassini trajectory data first - from Elizabeth other code
-    #Then take in the LFE list and plot them over each other
-    print("Loading trajectories...")
-    trajectories = pd.read_csv(input_data_fp + "cassini_output/trajectorytotal.csv", parse_dates=["datetime_ut"])
-    ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet)
+    if plot["residence_time_multiplots"]:
+        ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet, saturation_factor=1.5)
     
-    PlotLfeDistributions(trajectories, LFE_df, unet=unet)
+    if plot["lfe_distributions"]:       
+        PlotLfeDistributions(trajectories, LFE_df, unet=unet, scale="linear", long_lfe_cutoff=lfe_duration_split)
 
 
 
 def PlotDurationHistogram(LFE_secs, unet=True):
     fig, ax = plt.subplots(1, tight_layout=True, sharey = True, figsize=(8,8))
-    ax.hist(np.array(LFE_secs)/(60.*24.),bins=np.linspace(0,250,126))
+    ax.hist(np.array(LFE_secs)/(60.*24.),bins=np.linspace(0,250,126), label=f"N = {len(LFE_secs)}")
 
     if unet:
         ax.set_title('Histogram of duration of LFEs across Cassini mission (UNET Output)')
@@ -75,10 +82,13 @@ def PlotDurationHistogram(LFE_secs, unet=True):
     ax.set_ylabel('# of LFEs')
     ax.set_xscale('log')
 
-    #TO ADD legend to include: N of LFEs, mean or median of distribution
-    print(np.median(np.array(LFE_secs)/(60.*24.)))
-    print(np.mean(np.array(LFE_secs)/(60.*24.)))
-    #perhaps overplot these as vertical lines
+    median = np.median(np.array(LFE_secs)/(60.*24.))
+    mean = np.mean(np.array(LFE_secs)/(60.*24.))
+
+    ax.axvline(x=median, color="indianred", linewidth=2, label=f"Median: {median:.2f} hours")
+    ax.axvline(x=mean, color="indianred", linewidth=2, linestyle="dashed", label=f"Mean: {mean:.2f} hours")
+
+    plt.legend()
 
     plt.show()
 
@@ -93,7 +103,7 @@ def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
     #Want to be able to look at these spectrograms to see if any need to be removed as outliers/unphysical
 
 
-def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, theta_bins=24, unet=True):
+def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, theta_bins=24, unet=True, saturation_factor=1):
 
     r_bins = int(max_r / r_bin_size)
 
@@ -178,10 +188,10 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     
     timeMesh = ax_polar.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], timeSpentInBin/60, cmap="viridis", shading="flat")
 
-    lfeMesh = ax_polar_lfe.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], lfe_detections_in_bin, cmap="magma", shading="flat", zorder=-1)
+    lfeMesh = ax_polar_lfe.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], lfe_detections_in_bin, vmax=np.nanmax(lfe_detections_in_bin)/saturation_factor, cmap="magma", shading="flat", zorder=-1)
     ax_polar_lfe.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], timeSpentInBin, cmap=ListedColormap(["lightgrey"]), shading="flat", zorder=-2)
 
-    normMesh = ax_polar_norm.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], norm_detections_in_bin, cmap="plasma", shading="flat", zorder=-1)
+    normMesh = ax_polar_norm.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], norm_detections_in_bin, vmax=np.nanmax(norm_detections_in_bin)/saturation_factor, cmap="plasma", shading="flat", zorder=-1)
     ax_polar_norm.pcolormesh(mesh_inner_edges["theta"], mesh_inner_edges["r"], timeSpentInBin, cmap=ListedColormap(["lightgrey"]), shading="flat", zorder=-2)
 
     
@@ -224,7 +234,7 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     # fig.colorbar(pc, label="hours")
     plt.show()
 
-def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-20, 20, 40), lt_hist_bins=np.linspace(0, 24, 48), unet=True):
+def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-20, 20, 40), lt_hist_bins=np.linspace(0, 24, 48), unet=True, scale="linear", long_lfe_cutoff=11):
     
     fig, axes = plt.subplots(3, 1, figsize=(8, 8))
     (r_axis, lat_axis, lt_axis) = axes
@@ -291,17 +301,17 @@ def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist
 
     else:
         # returns the indices
-        short_LFEs = np.where(LFE_df["duration"] <= 11*60*60) # less than 100 hours
-        long_LFEs = np.where(LFE_df["duration"] > 11*60*60) # less than 100 hours
+        short_LFEs = np.where(LFE_df["duration"] <= long_lfe_cutoff*60*60)
+        long_LFEs = np.where(LFE_df["duration"] > long_lfe_cutoff*60*60) 
 
-        r_axis.hist([lfe_r[i] for i in short_LFEs], bins=r_hist_bins, color="indianred", label="duration < 11 hours")
-        r_axis.hist([lfe_r[i] for i in long_LFEs], bins=r_hist_bins, color="mediumturquoise", label="duration > 11 hours")
+        r_axis.hist([lfe_r[i] for i in short_LFEs], bins=r_hist_bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
+        r_axis.hist([lfe_r[i] for i in long_LFEs], bins=r_hist_bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
 
-        lat_axis.hist([np.array(lfe_lat)[i] for i in short_LFEs], bins=lat_hist_bins, color="indianred", label="duration < 11 hours")
-        lat_axis.hist([np.array(lfe_lat)[i] for i in long_LFEs], bins=lat_hist_bins, color="mediumturquoise", label="duration > 11 hours")
+        lat_axis.hist([np.array(lfe_lat)[i] for i in short_LFEs], bins=lat_hist_bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
+        lat_axis.hist([np.array(lfe_lat)[i] for i in long_LFEs], bins=lat_hist_bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
 
-        lt_axis.hist([np.array(lfe_lt)[i] for i in short_LFEs], bins=lt_hist_bins, color="indianred", label="duration < 11 hours")
-        lt_axis.hist([np.array(lfe_lt)[i] for i in long_LFEs], bins=lt_hist_bins, color="mediumturquoise", label="duration > 11 hours")
+        lt_axis.hist([np.array(lfe_lt)[i] for i in short_LFEs], bins=lt_hist_bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
+        lt_axis.hist([np.array(lfe_lt)[i] for i in long_LFEs], bins=lt_hist_bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
         
         lt_axis.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
 
@@ -310,7 +320,7 @@ def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist
     for ax in axes:
         ax.set_ylabel("LFE Count")
         ax.margins(0)
-        ax.set_yscale("log")
+        ax.set_yscale(scale)
 
     r_axis.set_xlabel("Radial Distance (R$_S$)")
 
