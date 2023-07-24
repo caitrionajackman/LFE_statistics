@@ -31,7 +31,7 @@ def main():
 
     #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
     print('First step is to read in the LFE list')
-    LFE_df = pd.read_csv(input_data_fp + '/lfe_detections.csv',parse_dates=['start','end'])
+    LFE_df = pd.read_csv(input_data_fp + '/lfe_detections_unet.csv',parse_dates=['start','end'])
     #print(LFE_df) 
     #start	end	label
     #24/07/2004  20:41:27    25/07/2004  02:13:52    LFE
@@ -63,7 +63,7 @@ def main():
 
 
 def PlotDurationHistogram(LFE_secs, unet=True):
-    fig, ax = plt.subplots(1, tight_layout=True, sharey = True)
+    fig, ax = plt.subplots(1, tight_layout=True, sharey = True, figsize=(8,8))
     ax.hist(np.array(LFE_secs)/(60.*24.),bins=np.linspace(0,250,126))
 
     if unet:
@@ -151,7 +151,7 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     lfe_detections_in_bin = lfe_detections_in_bin[:-1,:-1]
     norm_detections_in_bin = norm_detections_in_bin[:-1,:-1]
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(16, 10))
 
 
     ax_cartesian = fig.add_subplot(1, 3, 1, zorder=10)
@@ -197,8 +197,8 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
         polar_axis.set_xticklabels('')
         polar_axis.set_yticklabels('')
 
-        cartesian_axis.set_xticks(np.concatenate((np.negative(np.flip(polar_grid_ticks_r)[0:-1]), polar_grid_ticks_r)))
-        cartesian_axis.set_yticks(np.concatenate((np.negative(np.flip(polar_grid_ticks_r)[0:-1]), polar_grid_ticks_r)))
+        cartesian_axis.set_xticks(np.concatenate((np.negative(np.flip(polar_grid_ticks_r)[0:-1]), polar_grid_ticks_r))[0::2])
+        cartesian_axis.set_yticks(np.concatenate((np.negative(np.flip(polar_grid_ticks_r)[0:-1]), polar_grid_ticks_r))[0::2])
 
         cartesian_axis.set_xlabel("X$_{KSM}$ (R$_S$)")
         cartesian_axis.set_ylabel("Y$_{KSM}$ (R$_S$)")
@@ -226,7 +226,7 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
 
 def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-20, 20, 40), lt_hist_bins=np.linspace(0, 24, 48), unet=True):
     
-    fig, axes = plt.subplots(3, 1)
+    fig, axes = plt.subplots(3, 1, figsize=(8, 8))
     (r_axis, lat_axis, lt_axis) = axes
     # Define secondary axes for spacecraft time
     
