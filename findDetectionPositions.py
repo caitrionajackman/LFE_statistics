@@ -6,10 +6,10 @@ import numpy as np
 
 saturnRadius = 60268 # km
 
-spice.furnsh("./SPICE/cassini/metakernel_cassini.txt")
+spice.furnsh("/home/daraghhollman/Main/SPICE_Tools/SPICE/cassini/metakernel_cassini.txt")
 spice.furnsh("./SPICE/cassini/cas_dyn_v03.tf")
 
-lfeDetections = pandas.read_csv("./../data/2004001_2017258_catalogue.csv").truncate(before=67)
+lfeDetections = pandas.read_csv("./../data/2004001_2017258_catalogue.csv")
 startTimes = lfeDetections["start"]
 endTimes = lfeDetections["end"]
 labels = lfeDetections["label"]
