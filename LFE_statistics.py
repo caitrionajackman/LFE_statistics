@@ -21,7 +21,8 @@ def main():
     plt.rcParams.update({'font.size': 12})
 
     unet=True
-    data_directory = "./../data/"
+#    data_directory = "./../data/"
+    data_directory = "C:/Users/Local Admin/Documents/Collaborations/Jackman_LFEs/"
     lfe_unet_data = "lfe_detections_unet.csv" # Processed using findDetectionPositions.py
     lfe_training_data = "lfe_detections_training.csv" # "
     trajectories_file = "cassini_output/trajectorytotal.csv" # Output from Beth's "Cassini_Plotting" repo
@@ -42,7 +43,8 @@ def main():
 
     #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
     print('Reading in the LFE list')
-    
+    #Unet True means the code uses the output of O'Dwyer Unet (4950 examples) 28/07/2023 - before post-processing
+    #Unet False means the code uses the training data (984 examples)
     if unet is True:
         LFE_df = pd.read_csv(data_directory + lfe_unet_data, parse_dates=['start','end'])
 
