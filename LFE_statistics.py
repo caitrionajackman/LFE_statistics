@@ -29,15 +29,17 @@ def main():
     ppo_file = "mag_phases_2004_2017_final.sav"
     LFE_phase_df = "lfe_with_phase.csv" # File saved by SavePPO()
 
-    lfe_duration_split = 11 # measured in hours
+    lfe_duration_split = 11 # measured in hours #this may change to become the median of the duration distribution (or some other physically meaningful number)
 
     plot = {
-        "duration_histograms": False,
-        "inspect_longest_lfes": False,
-        "residence_time_multiplots": False,
-        "lfe_distributions": False,
-        "ppo_save": False,
-        "ppo_plot": False,
+        "duration_histograms": True,
+        "inspect_longest_lfes": True,
+        #TODO: Add function here to plot spectrogram (call radio data), and overplot polygons (call Unet json file)
+        #TODO: Action on the shortest LFEs (compare to Reed 30 minute lower bound criterion)
+        "residence_time_multiplots": True,
+        "lfe_distributions": True,
+        "ppo_save": False,  #this takes 4-5 minutes and produces LFE_phase_df
+        "ppo_plot": True,
         "local_ppo_plot": True
     }
 
@@ -71,6 +73,9 @@ def main():
 
     if plot["residence_time_multiplots"]:
         ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet, saturation_factor=1)
+        #TODO: check how saturation factor works (lower priority until after the post-processing is done)
+        #TODO: Make quick sorting function to manually examine LFEs in particular LT sectors. Sort the LFEs by hrs of LT        
+        #TODO ditto for latitude    
     
     if plot["lfe_distributions"]:       
         PlotLfeDistributions(trajectories, LFE_df, unet=unet, scale="linear", long_lfe_cutoff=lfe_duration_split)
@@ -88,9 +93,11 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
 
     data = pd.read_csv(file_path)
 
+    #TODO: Check with Gabs - is this how to start treatment of PPOs at start?
     north = np.array(data["north phase"]) % 360
     south = np.array(data["south phase"]) % 360
 
+    #differentiate between local phases and "global" phases - and both require similar data
     if local is True:
         x = LFE_df["x_ksm"]
         y = LFE_df["y_ksm"]
@@ -118,6 +125,7 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
         local_phase_north = np.array(local_phase_north)
         local_phase_south = np.array(local_phase_south)
 
+    #long_lfe_cutoff is set to lfe_duration_split, which for now (28/07) is set to 11 hours.
     short_LFEs = np.where(LFE_df["duration"] <= long_lfe_cutoff*60*60)
     long_LFEs = np.where(LFE_df["duration"] > long_lfe_cutoff*60*60)
 
