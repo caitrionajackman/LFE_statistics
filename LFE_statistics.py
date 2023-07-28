@@ -36,7 +36,8 @@ def main():
         "residence_time_multiplots": False,
         "lfe_distributions": False,
         "ppo_save": False,
-        "ppo_plot": True
+        "ppo_plot": False,
+        "local_ppo_plot": True
     }
 
     #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
@@ -67,7 +68,7 @@ def main():
         trajectories = pd.read_csv(data_directory + trajectories_file, parse_dates=["datetime_ut"])
 
     if plot["residence_time_multiplots"]:
-        ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet, saturation_factor=1.5)
+        ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet, saturation_factor=1)
     
     if plot["lfe_distributions"]:       
         PlotLfeDistributions(trajectories, LFE_df, unet=unet, scale="linear", long_lfe_cutoff=lfe_duration_split)
@@ -76,31 +77,72 @@ def main():
         SavePPO(data_directory + ppo_file, LFE_df, data_directory, "lfe_with_phase.csv")
 
     if plot["ppo_plot"]:
-        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split)
+        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=False)
 
-def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True):
+    if plot["local_ppo_plot"]:
+        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=True)
+
+def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
 
     data = pd.read_csv(file_path)
 
     north = np.array(data["north phase"]) % 360
     south = np.array(data["south phase"]) % 360
 
-    fig, axes = plt.subplots(2, 1, figsize=(8, 8))
-    ax_north, ax_south = axes
-    
+    if local is True:
+        x = LFE_df["x_ksm"]
+        y = LFE_df["y_ksm"]
+        z = LFE_df["z_ksm"]
+
+        spacecraft_r, spacecraft_theta, spacecraft_z = CartesiansToCylindrical(x, y, z)
+
+        # Calculate local time
+        spacecraft_lt = []
+        for longitude_rads in spacecraft_theta:
+            longitude_degs = longitude_rads*180/np.pi
+            spacecraft_lt.append(((longitude_degs+180)*24/360) % 24)
+
+        azimuth = []
+        for lt in spacecraft_lt:
+            azimuth.append(((lt-12) * 15 + 720) % 360)
+
+        local_phase_north = []
+        local_phase_south = []
+        for north_phase, south_phase, az in zip(north, south, azimuth):
+            local_phase_north.append(((north_phase - azimuth) + 720) % 360)
+            local_phase_south.append(((south_phase - azimuth) + 720) % 360)
+
     short_LFEs = np.where(LFE_df["duration"] <= long_lfe_cutoff*60*60)
     long_LFEs = np.where(LFE_df["duration"] > long_lfe_cutoff*60*60)
 
-    ax_north.hist([north[i] for i in short_LFEs], bins=bins, color="indianred")
-    ax_north.hist([north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+    if local is False:
+        fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+        ax_north, ax_south = axes
 
-    ax_south.hist([south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
-    ax_south.hist([south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+        ax_north.hist([north[i] for i in short_LFEs], bins=bins, color="indianred")
+        ax_north.hist([north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+
+        ax_south.hist([south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
+        ax_south.hist([south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
 
 
-    ax_north.set_title("North")    
-    
-    ax_south.set_title("South")
+        ax_north.set_title("North Phase")
+        
+        ax_south.set_title("South Phase")
+
+    else:
+        fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+        ax_local_north, ax_local_south = axes
+
+        ax_local_north.hist([local_phase_north[i] for i in short_LFEs], bins=bins, color="indianred")
+        ax_local_north.hist([local_phase_north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+
+        ax_local_south.hist([local_phase_south[i] for i in short_LFEs], bins=bins, color="indianred")
+        ax_local_south.hist([local_phase_south[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+
+        ax_local_north.set_title("North Local Phase")
+        ax_local_south.set_title("South Local Phase")
+
 
     for ax in fig.get_axes():
         ax.set_ylabel("# of LFEs")
@@ -247,8 +289,7 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     lfe_detections_in_bin = lfe_detections_in_bin[:-1,:-1]
     norm_detections_in_bin = norm_detections_in_bin[:-1,:-1]
 
-    fig = plt.figure(figsize=(16, 10))
-
+    fig = plt.figure(figsize=(16.5, 10))
 
     ax_cartesian = fig.add_subplot(1, 3, 1, zorder=10)
     ax_cartesian.patch.set_alpha(0)
@@ -318,6 +359,7 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
     # cax2.axis("off")
 
     # fig.colorbar(pc, label="hours")
+
     plt.show()
 
 def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-20, 20, 40), lt_hist_bins=np.linspace(0, 24, 48), unet=True, scale="linear", long_lfe_cutoff=11):
