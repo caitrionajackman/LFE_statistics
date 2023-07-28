@@ -106,11 +106,15 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
         for lt in spacecraft_lt:
             azimuth.append(((lt-12) * 15 + 720) % 360)
 
+
         local_phase_north = []
         local_phase_south = []
         for north_phase, south_phase, az in zip(north, south, azimuth):
-            local_phase_north.append(((north_phase - azimuth) + 720) % 360)
-            local_phase_south.append(((south_phase - azimuth) + 720) % 360)
+            local_phase_north.append(((north_phase - az) + 720) % 360)
+            local_phase_south.append(((south_phase - az) + 720) % 360)
+
+        local_phase_north = np.array(local_phase_north)
+        local_phase_south = np.array(local_phase_south)
 
     short_LFEs = np.where(LFE_df["duration"] <= long_lfe_cutoff*60*60)
     long_LFEs = np.where(LFE_df["duration"] > long_lfe_cutoff*60*60)
@@ -129,6 +133,9 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
         ax_north.set_title("North Phase")
         
         ax_south.set_title("South Phase")
+        ax_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
+
+        titleTag = "PPO"
 
     else:
         fig, axes = plt.subplots(2, 1, figsize=(8, 8))
@@ -137,12 +144,15 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
         ax_local_north.hist([local_phase_north[i] for i in short_LFEs], bins=bins, color="indianred")
         ax_local_north.hist([local_phase_north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
 
-        ax_local_south.hist([local_phase_south[i] for i in short_LFEs], bins=bins, color="indianred")
-        ax_local_south.hist([local_phase_south[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+        ax_local_south.hist([local_phase_south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
+        ax_local_south.hist([local_phase_south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
 
         ax_local_north.set_title("North Local Phase")
         ax_local_south.set_title("South Local Phase")
 
+        ax_local_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
+
+        titleTag = "Local"
 
     for ax in fig.get_axes():
         ax.set_ylabel("# of LFEs")
@@ -151,11 +161,12 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
         ax.set_xticks(bins[0::2])
 
     if unet:
-        fig.suptitle("Northern and Southern PPO Phases (UNET Output)")
+        dataTag="UNET Output"
     else:
-        fig.suptitle("Northern and Southern PPO Phases (Training Data)")
+        datTag="Training Data"
+        
+    fig.suptitle(f"Northern and Southern {titleTag} Phases ({dataTag})")
 
-    ax_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
     plt.tight_layout()
     plt.show()
 
