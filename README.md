@@ -5,7 +5,7 @@
 ## Data
 *Describes how to download and structure the data*
 
-The LFE detection output of the UNET code (O'Dwyer et al.) can be found here:
+The LFE detection output of the UNET code (O'Dwyer et al. (YYYY)) can be found here:
 * [UNET Output](https://zenodo.org/record/8075625)
 
 The training data used to develop this model can be found and processed with the following:
