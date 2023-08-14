@@ -21,8 +21,8 @@ def main():
     plt.rcParams.update({'font.size': 12})
 
     unet=True
-#    data_directory = "./../data/"
-    data_directory = "C:/Users/Local Admin/Documents/Collaborations/Jackman_LFEs/"
+    data_directory = "./../data/"
+    # data_directory = "C:/Users/Local Admin/Documents/Collaborations/Jackman_LFEs/"
     lfe_unet_data = "lfe_detections_unet.csv" # Processed using findDetectionPositions.py
     lfe_training_data = "lfe_detections_training.csv" # "
     trajectories_file = "cassini_output/trajectorytotal.csv" # Output from Beth's "Cassini_Plotting" repo
@@ -32,15 +32,16 @@ def main():
     lfe_duration_split = 11 # measured in hours #this may change to become the median of the duration distribution (or some other physically meaningful number)
 
     plot = {
-        "duration_histograms": True,
-        "inspect_longest_lfes": True,
+        "duration_histograms": False,
+        "inspect_longest_lfes": False,
         #TODO: Add function here to plot spectrogram (call radio data), and overplot polygons (call Unet json file)
         #TODO: Action on the shortest LFEs (compare to Reed 30 minute lower bound criterion)
-        "residence_time_multiplots": True,
-        "lfe_distributions": True,
+        "residence_time_multiplots": False,
+        "lfe_distributions": False,
         "ppo_save": False,  #this takes 4-5 minutes and produces LFE_phase_df
         "ppo_plot": True,
-        "local_ppo_plot": True
+        "local_ppo_plot": True,
+        "split_ppo_by_local_time": True # Split the above PPO plots by local time
     }
 
     #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
@@ -84,41 +85,42 @@ def main():
         SavePPO(data_directory + ppo_file, LFE_df, data_directory, "lfe_with_phase.csv")
 
     if plot["ppo_plot"]:
-        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=False)
+        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=False, split_by_local_time=plot["split_ppo_by_local_time"])
 
     if plot["local_ppo_plot"]:
-        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=True)
+        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=True, split_by_local_time=plot["split_ppo_by_local_time"])
 
-def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
+def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False, split_by_local_time=False):
 
     data = pd.read_csv(file_path)
 
     #TODO: Check with Gabs - is this how to start treatment of PPOs at start?
-    north = np.array(data["north phase"]) % 360
-    south = np.array(data["south phase"]) % 360
+    north_phase = np.array(data["north phase"]) % 360
+    south_phase = np.array(data["south phase"]) % 360
+
+    x = LFE_df["x_ksm"]
+    y = LFE_df["y_ksm"]
+    z = LFE_df["z_ksm"]
+
+    spacecraft_r, spacecraft_theta, spacecraft_z = CartesiansToCylindrical(x, y, z)
+
+    # Calculate local time
+    spacecraft_lt = []
+    for longitude_rads in spacecraft_theta:
+        longitude_degs = longitude_rads*180/np.pi
+        spacecraft_lt.append(((longitude_degs+180)*24/360) % 24)
+
+    azimuth = []
+    for lt in spacecraft_lt:
+        azimuth.append(((lt-12) * 15 + 720) % 360)
+
 
     #differentiate between local phases and "global" phases - and both require similar data
     if local is True:
-        x = LFE_df["x_ksm"]
-        y = LFE_df["y_ksm"]
-        z = LFE_df["z_ksm"]
-
-        spacecraft_r, spacecraft_theta, spacecraft_z = CartesiansToCylindrical(x, y, z)
-
-        # Calculate local time
-        spacecraft_lt = []
-        for longitude_rads in spacecraft_theta:
-            longitude_degs = longitude_rads*180/np.pi
-            spacecraft_lt.append(((longitude_degs+180)*24/360) % 24)
-
-        azimuth = []
-        for lt in spacecraft_lt:
-            azimuth.append(((lt-12) * 15 + 720) % 360)
-
 
         local_phase_north = []
         local_phase_south = []
-        for north_phase, south_phase, az in zip(north, south, azimuth):
+        for north_phase, south_phase, az in zip(north_phase, south_phase, azimuth):
             local_phase_north.append(((north_phase - az) + 720) % 360)
             local_phase_south.append(((south_phase - az) + 720) % 360)
 
@@ -129,55 +131,100 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
     short_LFEs = np.where(LFE_df["duration"] <= long_lfe_cutoff*60*60)
     long_LFEs = np.where(LFE_df["duration"] > long_lfe_cutoff*60*60)
 
-    if local is False:
-        fig, axes = plt.subplots(2, 1, figsize=(8, 8))
-        ax_north, ax_south = axes
+    if not split_by_local_time:
+        if local is False:
+            fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+            ax_north, ax_south = axes
 
-        ax_north.hist([north[i] for i in short_LFEs], bins=bins, color="indianred")
-        ax_north.hist([north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+            ax_north.hist([north_phase[i] for i in short_LFEs], bins=bins, color="indianred")
+            ax_north.hist([north_phase[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
 
-        ax_south.hist([south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
-        ax_south.hist([south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+            ax_south.hist([south_phase[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
+            ax_south.hist([south_phase[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
 
 
-        ax_north.set_title("North Phase")
+            ax_north.set_title("North Phase")
+            
+            ax_south.set_title("South Phase")
+            ax_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
+
+            titleTag = "PPO"
+
+        else:
+            fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+            ax_local_north, ax_local_south = axes
+
+            ax_local_north.hist([local_phase_north[i] for i in short_LFEs], bins=bins, color="indianred")
+            ax_local_north.hist([local_phase_north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+
+            ax_local_south.hist([local_phase_south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
+            ax_local_south.hist([local_phase_south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+
+            ax_local_north.set_title("North Local Phase")
+            ax_local_south.set_title("South Local Phase")
+
+            ax_local_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
+
+            titleTag = "Local"
         
-        ax_south.set_title("South Phase")
-        ax_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
-
-        titleTag = "PPO"
+        for ax in fig.get_axes():
+            ax.set_ylabel("# of LFEs")
+            ax.set_xlabel("Phase ($^\circ$)")
+            ax.margins(x=0)
+            ax.set_xticks(bins[0::2])
 
     else:
-        fig, axes = plt.subplots(2, 1, figsize=(8, 8))
-        ax_local_north, ax_local_south = axes
+        if local:
+            north_phase = local_phase_north
+            south_phase = local_phase_south
+            titleTag = "Local"
 
-        ax_local_north.hist([local_phase_north[i] for i in short_LFEs], bins=bins, color="indianred")
-        ax_local_north.hist([local_phase_north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+        else:
+            titleTag = "Global"
+    
+        # Get the indices where LFE is in each lt sector
+        spacecraft_lt = np.array(spacecraft_lt)
+        dawn_LFEs = np.where((spacecraft_lt >= 3) & (spacecraft_lt < 9))
+        noon_LFEs = np.where((spacecraft_lt >= 9) & (spacecraft_lt < 15))
+        dusk_LFEs = np.where((spacecraft_lt >= 15) & (spacecraft_lt < 21))
+        midnight_LFEs = np.where((spacecraft_lt >= 21) | (spacecraft_lt < 3))
 
-        ax_local_south.hist([local_phase_south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
-        ax_local_south.hist([local_phase_south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+        lfe_lt_groups = [dawn_LFEs, noon_LFEs, dusk_LFEs, midnight_LFEs]
+        lfe_lt_group_names = ["Dawn (3 <= LT < 9)", "Noon (9 <= LT < 15)", "Dusk (15 <= LT < 21)", "Midnight (21 <= LT < 3)"]
 
-        ax_local_north.set_title("North Local Phase")
-        ax_local_south.set_title("South Local Phase")
+        fig, axes = plt.subplots(2, 4, figsize=(20, 8), sharex=True, sharey=True)
+        north_axes = ax_north_dawn, ax_north_noon, ax_north_dusk, ax_north_midnight = axes[0]
+        south_axes = ax_south_dawn, ax_south_noon, ax_south_dusk, ax_south_midnight = axes[1]
 
-        ax_local_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
+        for index, ax in enumerate(north_axes):
+            ax.hist([north_phase[i] for i in lfe_lt_groups[index]])
+            ax.margins(x=0)
 
-        titleTag = "Local"
+            if index == 0:
+                ax.set_ylabel("North")
 
-    for ax in fig.get_axes():
-        ax.set_ylabel("# of LFEs")
-        ax.set_xlabel("Phase ($^\circ$)")
-        ax.margins(x=0)
-        ax.set_xticks(bins[0::2])
+        for index, ax in enumerate(south_axes):
+            ax.hist([south_phase[i] for i in lfe_lt_groups[index]])
+            ax.margins(x=0)
+
+            ax.set_xticks(bins[0::4])
+            ax.set_xlabel(lfe_lt_group_names[index])
+
+            if index == 0:
+                ax.set_ylabel("South")
+
+        
+        fig.text(0.5, 0.02, 'PPO Phase ($^\circ$)', ha='center', fontsize=16)
+        fig.text(0.08, 0.5, '# of LFEs', va='center', rotation='vertical', fontsize=16)
 
     if unet:
         dataTag="UNET Output"
     else:
         datTag="Training Data"
         
-    fig.suptitle(f"Northern and Southern {titleTag} Phases ({dataTag})")
+    fig.suptitle(f"Northern and Southern {titleTag} Phases ({dataTag})", fontsize=18)
 
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.show()
 
 
