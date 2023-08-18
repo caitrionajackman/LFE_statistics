@@ -2,6 +2,12 @@
 
 *Insert short description of the project and aims here*
 
+This repository contains the python code used to analyse data and create the plots for the publication: 
+
+*Low Frequency Extensions of Saturn Kilometric Radiation: A statistical view from the entire Cassini mission* 
+
+which can be found here:
+
 ## Data
 *Describes how to download and structure the data*
 
@@ -19,7 +25,7 @@ Cassini Plotting Repository:
 * [Cassini_Plotting](https://zenodo.org/record/7349921)
 
 ## SPICE
-If you're familiar with using SPICE and spiceypy, and have your own metakernel. You can skip to the end of this section and replace the path with a path to your metakernel.
+If you're familiar with using SPICE and spiceypy - and have your own metakernel - you can skip to the end of this section and replace the path with a path to your metakernel.
 
 To use spiceypy to quickly retrieve Cassini ephemeris we must donwload the relevant SPICE kernels. [DIAS SPICE Tools](https://github.com/mjrutala/DIASPICETools) (Rutala, M. J.) is a great package for easily downloading the required kernels without needing any experience with SPICE. It can be downloaded using the following command:
 
@@ -36,14 +42,57 @@ run:
 
 This will download the relevant kernel files needed (~3 GB), this may take some time.
 
-## Programs
+When finished, you will find a subdirectories `SPICE/Cassini/` which will contain **metakernel_cassini.txt**.
+
+Update the `spice.furnsh("path/to/metakernel")` path inside **findDetectionPositions.py** with your path to your metakernel.
+
+## Functions
 *Describes what each file does and how to use the tools*
+
+Before running the script, you must replace the `data_directory` path in **LFE_statistics** to where you have stored the data files. You may need to change the file names below this too.
+
+In **LFE_statistics.py** you will see the following python dictionary:
+
+```python
+plot = {
+        "duration_histograms": True,
+        "inspect_longest_lfes": True,
+        "residence_time_multiplots": True,
+        "lfe_distributions": True,
+        "ppo_save": False, 
+        "ppo_plot": True,
+        "local_ppo_plot": True
+    }
+```
+
+These keys can be enabled and disabled by changing to either 'True' or 'False'
+
+### duration_histograms
+
+### inspect_longest_lfes
+Prints an output of the LFE list to the terminal showing the longest durations
+
+### residence_time_multiplots
+
+### lfe_distributions
+
+### ppo_save
+A processing step used to create the file needed for `ppo_plot`
+
+### ppo_plot
+
+### local_ppo_plot
+
+
 
 ## Requirements
 *Note to add version numbers*
 * spiceypy
 * matplotlib
 * numpy
+* pandas
+* configparser
+* tqdm
 
 
 ## References
