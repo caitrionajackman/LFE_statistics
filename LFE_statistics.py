@@ -7,6 +7,7 @@ Created on Friday June 23rd 2023
 import matplotlib.ticker as mticker 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.transforms as mtransforms
 from matplotlib.colors import ListedColormap 
 from mpl_toolkits import axes_grid1
 import numpy as np
@@ -36,11 +37,11 @@ def main():
         "inspect_longest_lfes": False,
         #TODO: Add function here to plot spectrogram (call radio data), and overplot polygons (call Unet json file)
         #TODO: Action on the shortest LFEs (compare to Reed 30 minute lower bound criterion)
-        "residence_time_multiplots": False,
+        "residence_time_multiplots": True,
         "lfe_distributions": False,
         "ppo_save": False,  #this takes 4-5 minutes and produces LFE_phase_df
-        "ppo_plot": True,
-        "local_ppo_plot": True,
+        "ppo_plot": False,
+        "local_ppo_plot": False,
         "split_ppo_by_local_time": True # Split the above PPO plots by local time
     }
 
@@ -73,7 +74,7 @@ def main():
         trajectories = pd.read_csv(data_directory + trajectories_file, parse_dates=["datetime_ut"])
 
     if plot["residence_time_multiplots"]:
-        ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet, saturation_factor=1)
+        ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 0], unet=unet, saturation_factor=1)
         #TODO: check how saturation factor works (lower priority until after the post-processing is done)
         #TODO: Make quick sorting function to manually examine LFEs in particular LT sectors. Sort the LFEs by hrs of LT        
         #TODO ditto for latitude    
@@ -196,14 +197,19 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False, sp
         north_axes = ax_north_dawn, ax_north_noon, ax_north_dusk, ax_north_midnight = axes[0]
         south_axes = ax_south_dawn, ax_south_noon, ax_south_dusk, ax_south_midnight = axes[1]
 
-        for index, ax in enumerate(north_axes):
+        north_labels = ["(a)", "(b)", "(c)", "(d)"]
+        for index, (ax, label) in enumerate(zip(north_axes, north_labels)):
             ax.hist([north_phase[i] for i in lfe_lt_groups[index]])
             ax.margins(x=0)
 
             if index == 0:
                 ax.set_ylabel("North")
 
-        for index, ax in enumerate(south_axes):
+            trans = mtransforms.ScaledTranslation(-20/72, 7/72, fig.dpi_scale_trans)
+            ax.text(0.0, 1.0, label, transform=ax.transAxes + trans, va='bottom')
+
+        south_labels = ["(e)", "(f)", "(g)", "(h)"]
+        for index, (ax, label) in enumerate(zip(south_axes, south_labels)):
             ax.hist([south_phase[i] for i in lfe_lt_groups[index]])
             ax.margins(x=0)
 
@@ -212,6 +218,9 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False, sp
 
             if index == 0:
                 ax.set_ylabel("South")
+
+            trans = mtransforms.ScaledTranslation(-20/72, 7/72, fig.dpi_scale_trans)
+            ax.text(0.0, 1.0, label, transform=ax.transAxes + trans, va='bottom')
 
         
         fig.text(0.5, 0.02, 'PPO Phase ($^\circ$)', ha='center', fontsize=16)
@@ -223,6 +232,7 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False, sp
         datTag="Training Data"
         
     fig.suptitle(f"Northern and Southern {titleTag} Phases ({dataTag})", fontsize=18)
+    plt.subplots_adjust(wspace=0.1)
 
     # plt.tight_layout()
     plt.show()
