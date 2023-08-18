@@ -46,6 +46,27 @@ When finished, you will find a subdirectories `SPICE/Cassini/` which will contai
 
 Update the `spice.furnsh("path/to/metakernel")` path inside **findDetectionPositions.py** with your path to your metakernel.
 
+
+## Requirements
+*Note to add version numbers*
+* spiceypy
+* matplotlib
+* numpy
+* pandas
+* configparser
+* tqdm
+
+
+## References
+O'Dwyer, E. P., Jackman, C.M, Domijan, K., & Lamy, L. (2023). Image-based Classification of Intense Radio Bursts from Spectrograms: An Application to Saturn Kilometric Radiation (1.0.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.807562
+
+O'Dwyer, Elizabeth P., Jackman, Caitriona M., Domijan, Katarina, Lamy, Laurent, & Louis, Corentin K. (2023). Selection of Low Frequency Extensions of Saturn Kilometric Radiation detected by Cassini/RPWS. (2.0.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7895766
+
+Provan, Gabrielle (2018). PPO phases 2004-2017. University of Leicester. Dataset. https://hdl.handle.net/2381/42436
+
+Elizabeth O'Dwyer. (2022). elodwyer1/Cassini_Plotting: v1.0.0 (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.7349921
+
+
 ## Functions
 *Describes what each file does and how to use the tools*
 
@@ -68,38 +89,29 @@ plot = {
 These keys can be enabled and disabled by changing to either 'True' or 'False'
 
 ### duration_histograms
+![lfe_stats_duration_histogram_unet_fulldata](https://github.com/caitrionajackman/LFE_statistics/assets/62439417/4f1bac1b-8a2b-4320-9f1e-fdbc0fd9f279)
 
 ### inspect_longest_lfes
 Prints an output of the LFE list to the terminal showing the longest durations
 
 ### residence_time_multiplots
+![lfe_stats_residence_multiplots_unet_fulldata](https://github.com/caitrionajackman/LFE_statistics/assets/62439417/b701f452-7d40-4813-bc85-dc67641b6770)
 
 ### lfe_distributions
+![lfe_stats_distributions_unet_fulldata](https://github.com/caitrionajackman/LFE_statistics/assets/62439417/7390814b-f699-44c8-815b-d8143f11cd90)
 
 ### ppo_save
 A processing step used to create the file needed for `ppo_plot`
 
 ### ppo_plot
+![lfe_stats_ppo_phases_unet_fulldata](https://github.com/caitrionajackman/LFE_statistics/assets/62439417/7e6d20c2-b41e-403b-bdf6-9b565bf46a1c)
 
 ### local_ppo_plot
+![lfe_stats_local_phases_unet](https://github.com/caitrionajackman/LFE_statistics/assets/62439417/568d85f0-30a2-473d-8b0a-8ded90023bfd)
+
+### split_ppo_by_local_time
+*Must be used in tandem with one of the two previous keys*
+![lfe_stats_global_ppo_by_lt_unet](https://github.com/caitrionajackman/LFE_statistics/assets/62439417/74038475-4ca4-4b2b-be43-ded2812a2997)
+![lfe_stats_local_ppo_by_lt_unet](https://github.com/caitrionajackman/LFE_statistics/assets/62439417/da5f94fd-152b-4172-b7ff-999f05aef640)
 
 
-
-## Requirements
-*Note to add version numbers*
-* spiceypy
-* matplotlib
-* numpy
-* pandas
-* configparser
-* tqdm
-
-
-## References
-O'Dwyer, E. P., Jackman, C.M, Domijan, K., & Lamy, L. (2023). Image-based Classification of Intense Radio Bursts from Spectrograms: An Application to Saturn Kilometric Radiation (1.0.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.807562
-
-O'Dwyer, Elizabeth P., Jackman, Caitriona M., Domijan, Katarina, Lamy, Laurent, & Louis, Corentin K. (2023). Selection of Low Frequency Extensions of Saturn Kilometric Radiation detected by Cassini/RPWS. (2.0.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7895766
-
-Provan, Gabrielle (2018). PPO phases 2004-2017. University of Leicester. Dataset. https://hdl.handle.net/2381/42436
-
-Elizabeth O'Dwyer. (2022). elodwyer1/Cassini_Plotting: v1.0.0 (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.7349921
