@@ -33,16 +33,18 @@ def main():
     lfe_duration_split = 11 # measured in hours #this may change to become the median of the duration distribution (or some other physically meaningful number)
 
     plot = {
-        "duration_histograms": False,
-        "inspect_longest_lfes": False,
+        "duration_histograms": True,
+        "inspect_longest_lfes": True,
         #TODO: Add function here to plot spectrogram (call radio data), and overplot polygons (call Unet json file)
         #TODO: Action on the shortest LFEs (compare to Reed 30 minute lower bound criterion)
         "residence_time_multiplots": True,
-        "lfe_distributions": False,
+        "lfe_distributions": True,
         "ppo_save": False,  #this takes 4-5 minutes and produces LFE_phase_df
-        "ppo_plot": False,
-        "local_ppo_plot": False,
-        "split_ppo_by_local_time": True # Split the above PPO plots by local time
+        "ppo_plot": True,
+        "local_ppo_plot": True,
+
+        "split_ppo_by_local_time": False, # Split the above PPO plots by local time
+        "normalise_histograms": True # Plots probability density instead: density = counts / (sum(counts), * np.diff(bins)). The area under the histogram integrates to 1.
     }
 
     #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
@@ -74,24 +76,24 @@ def main():
         trajectories = pd.read_csv(data_directory + trajectories_file, parse_dates=["datetime_ut"])
 
     if plot["residence_time_multiplots"]:
-        ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 0], unet=unet, saturation_factor=1)
+        ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet, saturation_factor=1)
         #TODO: check how saturation factor works (lower priority until after the post-processing is done)
         #TODO: Make quick sorting function to manually examine LFEs in particular LT sectors. Sort the LFEs by hrs of LT        
         #TODO ditto for latitude    
     
     if plot["lfe_distributions"]:       
-        PlotLfeDistributions(trajectories, LFE_df, unet=unet, scale="linear", long_lfe_cutoff=lfe_duration_split)
+        PlotLfeDistributions(trajectories, LFE_df, unet=unet, scale="linear", long_lfe_cutoff=lfe_duration_split, normalise_histograms=plot["normalise_histograms"])
 
     if plot["ppo_save"]:
         SavePPO(data_directory + ppo_file, LFE_df, data_directory, "lfe_with_phase.csv")
 
     if plot["ppo_plot"]:
-        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=False, split_by_local_time=plot["split_ppo_by_local_time"])
+        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=False, split_by_local_time=plot["split_ppo_by_local_time"], normalise_histograms=plot["normalise_histograms"])
 
     if plot["local_ppo_plot"]:
-        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=True, split_by_local_time=plot["split_ppo_by_local_time"])
+        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=True, split_by_local_time=plot["split_ppo_by_local_time"], normalise_histograms=plot["normalise_histograms"])
 
-def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False, split_by_local_time=False):
+def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False, split_by_local_time=False, normalise_histograms=False):
 
     data = pd.read_csv(file_path)
 
@@ -133,15 +135,21 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False, sp
     long_LFEs = np.where(LFE_df["duration"] > long_lfe_cutoff*60*60)
 
     if not split_by_local_time:
+
+        if normalise_histograms is True:
+            alpha = 0.7
+        else:
+            alpha = 1
+
         if local is False:
-            fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+            fig, axes = plt.subplots(2, 1, figsize=(8, 8), sharex=True)
             ax_north, ax_south = axes
 
-            ax_north.hist([north_phase[i] for i in short_LFEs], bins=bins, color="indianred")
-            ax_north.hist([north_phase[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+            ax_north.hist([north_phase[i] for i in short_LFEs], bins=bins, color="indianred", density=normalise_histograms, alpha=alpha)
+            ax_north.hist([north_phase[i] for i in long_LFEs], bins=bins, color="mediumturquoise", density=normalise_histograms, alpha=alpha)
 
-            ax_south.hist([south_phase[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
-            ax_south.hist([south_phase[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+            ax_south.hist([south_phase[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours", density=normalise_histograms, alpha=alpha)
+            ax_south.hist([south_phase[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours", density=normalise_histograms, alpha = alpha)
 
 
             ax_north.set_title("North Phase")
@@ -152,14 +160,14 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False, sp
             titleTag = "PPO"
 
         else:
-            fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+            fig, axes = plt.subplots(2, 1, figsize=(8, 8), sharex=True)
             ax_local_north, ax_local_south = axes
 
-            ax_local_north.hist([local_phase_north[i] for i in short_LFEs], bins=bins, color="indianred")
-            ax_local_north.hist([local_phase_north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+            ax_local_north.hist([local_phase_north[i] for i in short_LFEs], bins=bins, color="indianred", density=normalise_histograms, alpha=alpha)
+            ax_local_north.hist([local_phase_north[i] for i in long_LFEs], bins=bins, color="mediumturquoise", density=normalise_histograms, alpha=alpha)
 
-            ax_local_south.hist([local_phase_south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
-            ax_local_south.hist([local_phase_south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+            ax_local_south.hist([local_phase_south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours", density=normalise_histograms, alpha=alpha)
+            ax_local_south.hist([local_phase_south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours", density=normalise_histograms, alpha=alpha)
 
             ax_local_north.set_title("North Local Phase")
             ax_local_south.set_title("South Local Phase")
@@ -169,8 +177,13 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False, sp
             titleTag = "Local"
         
         for ax in fig.get_axes():
-            ax.set_ylabel("# of LFEs")
-            ax.set_xlabel("Phase ($^\circ$)")
+            if normalise_histograms is True:
+                ax.set_ylabel("LFE Probability Density")
+            else:
+                ax.set_ylabel("# of LFEs")
+
+            if ax == fig.get_axes()[-1]:
+                ax.set_xlabel("Phase ($^\circ$)")
             ax.margins(x=0)
             ax.set_xticks(bins[0::2])
 
@@ -232,9 +245,8 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False, sp
         datTag="Training Data"
         
     fig.suptitle(f"Northern and Southern {titleTag} Phases ({dataTag})", fontsize=18)
-    plt.subplots_adjust(wspace=0.1)
+    plt.subplots_adjust(wspace=0.1, bottom=0.2)
 
-    # plt.tight_layout()
     plt.show()
 
 
@@ -440,8 +452,13 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
 
     plt.show()
 
-def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-20, 20, 40), lt_hist_bins=np.linspace(0, 24, 48), unet=True, scale="linear", long_lfe_cutoff=11):
+def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-20, 20, 40), lt_hist_bins=np.linspace(0, 24, 48), unet=True, scale="linear", long_lfe_cutoff=11, normalise_histograms=False):
     
+    if normalise_histograms is True:
+        alpha = 0.7
+    else:
+        alpha = 1
+
     fig, axes = plt.subplots(3, 1, figsize=(8, 8))
     (r_axis, lat_axis, lt_axis) = axes
     # Define secondary axes for spacecraft time
@@ -510,21 +527,24 @@ def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist
         short_LFEs = np.where(LFE_df["duration"] <= long_lfe_cutoff*60*60)
         long_LFEs = np.where(LFE_df["duration"] > long_lfe_cutoff*60*60) 
 
-        r_axis.hist([lfe_r[i] for i in short_LFEs], bins=r_hist_bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
-        r_axis.hist([lfe_r[i] for i in long_LFEs], bins=r_hist_bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+        r_axis.hist([lfe_r[i] for i in short_LFEs], bins=r_hist_bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours", density=normalise_histograms, alpha=alpha)
+        r_axis.hist([lfe_r[i] for i in long_LFEs], bins=r_hist_bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours", density=normalise_histograms, alpha=alpha)
 
-        lat_axis.hist([np.array(lfe_lat)[i] for i in short_LFEs], bins=lat_hist_bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
-        lat_axis.hist([np.array(lfe_lat)[i] for i in long_LFEs], bins=lat_hist_bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+        lat_axis.hist([np.array(lfe_lat)[i] for i in short_LFEs], bins=lat_hist_bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours", density=normalise_histograms, alpha=alpha)
+        lat_axis.hist([np.array(lfe_lat)[i] for i in long_LFEs], bins=lat_hist_bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours", density=normalise_histograms, alpha=alpha)
 
-        lt_axis.hist([np.array(lfe_lt)[i] for i in short_LFEs], bins=lt_hist_bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
-        lt_axis.hist([np.array(lfe_lt)[i] for i in long_LFEs], bins=lt_hist_bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+        lt_axis.hist([np.array(lfe_lt)[i] for i in short_LFEs], bins=lt_hist_bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours", density=normalise_histograms, alpha=alpha)
+        lt_axis.hist([np.array(lfe_lt)[i] for i in long_LFEs], bins=lt_hist_bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours", density=normalise_histograms, alpha=alpha)
         
         lt_axis.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
 
 
 
     for ax in axes:
-        ax.set_ylabel("LFE Count")
+        if normalise_histograms is True:
+            ax.set_ylabel("LFE Probability Density")
+        else:
+            ax.set_ylabel("LFE Count")
         ax.margins(0)
         ax.set_yscale(scale)
 
