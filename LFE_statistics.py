@@ -33,18 +33,18 @@ def main():
     lfe_duration_split = 11 # measured in hours #this may change to become the median of the duration distribution (or some other physically meaningful number)
 
     plot = {
-        "duration_histograms": True,
-        "inspect_longest_lfes": True,
+        "duration_histograms": False,
+        "inspect_longest_lfes": False,
         #TODO: Add function here to plot spectrogram (call radio data), and overplot polygons (call Unet json file)
         #TODO: Action on the shortest LFEs (compare to Reed 30 minute lower bound criterion)
         "residence_time_multiplots": True,
-        "lfe_distributions": True,
+        "lfe_distributions": False,
         "ppo_save": False,  #this takes 4-5 minutes and produces LFE_phase_df
-        "ppo_plot": True,
-        "local_ppo_plot": True,
+        "ppo_plot": False,
+        "local_ppo_plot": False,
 
         "split_ppo_by_local_time": False, # Split the above PPO plots by local time
-        "normalise_histograms": True # Plots probability density instead: density = counts / (sum(counts), * np.diff(bins)). The area under the histogram integrates to 1.
+        "normalise_histograms": False # Plots probability density instead: density = counts / (sum(counts), * np.diff(bins)). The area under the histogram integrates to 1.
     }
 
     #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
@@ -76,7 +76,7 @@ def main():
         trajectories = pd.read_csv(data_directory + trajectories_file, parse_dates=["datetime_ut"])
 
     if plot["residence_time_multiplots"]:
-        ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet, saturation_factor=1)
+        ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet, saturation_factor=1, local_time_labels=True)
         #TODO: check how saturation factor works (lower priority until after the post-processing is done)
         #TODO: Make quick sorting function to manually examine LFEs in particular LT sectors. Sort the LFEs by hrs of LT        
         #TODO ditto for latitude    
@@ -321,7 +321,7 @@ def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
     #Want to be able to look at these spectrograms to see if any need to be removed as outliers/unphysical
 
 
-def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, theta_bins=24, unet=True, saturation_factor=1):
+def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, theta_bins=24, unet=True, saturation_factor=1, local_time_labels=True):
 
     r_bins = int(max_r / r_bin_size)
 
@@ -439,6 +439,17 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
         pos = cartesian_axis.get_position()
         colorbarAxis = fig.add_axes([pos.x0, pos.y0-pos.height*0.6, pos.width, pos.height], frameon=False, xticks=[], yticks=[])
         fig.colorbar(colormesh, ax=colorbarAxis, orientation="horizontal", location="bottom", label=label)
+
+        
+        # Add text for local time
+        if local_time_labels is True:
+            lt_label_distance = 75
+            lt_label_positions = [el * np.pi/180 for el in np.arange(0, 360, 45)]
+            lt_label_positions = lt_label_positions[4:] + lt_label_positions[:4]
+            lt_labels = [str(el) for el in np.arange(0, 24, 3)]
+
+            for pos, label in zip(lt_label_positions, lt_labels):
+                polar_axis.text(pos, lt_label_distance, label, va="center", ha="center", color="grey")
 
 
 
