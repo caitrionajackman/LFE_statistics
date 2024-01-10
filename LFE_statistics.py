@@ -55,10 +55,24 @@ def main():
 
 
     LFE_duration=LFE_df['end']-LFE_df['start']  #want this in minutes and to be smart about day/year boundaries
-
+  
     LFE_secs=[]
     for i in range(np.array(LFE_duration).size):
         LFE_secs.append(LFE_duration[i].total_seconds())
+
+    print('min of LFE duration is: ')
+    print(min(LFE_duration))
+    print(min(LFE_secs))
+    print('max of LFE duration is: ')
+    print(max(LFE_duration))
+    print(max(LFE_secs))
+    print('median of LFE duration is: ')
+    #print(np.median(np.array(LFE_duration)))
+    print(np.median(np.array(LFE_secs)))
+    print('mean of LFE duration is: ')
+    #print(np.mean(np.array(LFE_duration)))
+    print(np.mean(np.array(LFE_secs)))
+    
 
     if plot["duration_histograms"]:
         PlotDurationHistogram(LFE_secs, unet=unet)
@@ -230,9 +244,22 @@ def PlotDurationHistogram(LFE_secs, unet=True):
     ax.set_ylabel('# of LFEs')
     ax.set_xscale('log')
 
-    median = np.median(np.array(LFE_secs)/(60.*24.))
-    mean = np.mean(np.array(LFE_secs)/(60.*24.))
+    median = np.median(np.array(LFE_secs)/(60.*24.))    #values in hours (according to Daragh)
+    mean = np.mean(np.array(LFE_secs)/(60.*24.))     #values in hours (according to Daragh)
 
+    print('FUNCTION CALCULATIONS OF MEAN AND MEDIAN')
+    print(median)
+    print(mean)
+
+    #try alternative calculation of mean and median    
+    median = np.median(np.array(LFE_secs)/(60.*60.))    #values in seconds
+    mean = np.mean(np.array(LFE_secs)/(60.*60.))     #values in seconds
+    
+    print('FUNCTION CALCULATIONS OF MEAN AND MEDIAN')
+    print(median)
+    print(mean)
+
+    #I think daragh used the wrong calculation for mean and median. need to calculate it then divide by 3600
     ax.axvline(x=median, color="indianred", linewidth=2, label=f"Median: {median:.2f} hours")
     ax.axvline(x=mean, color="indianred", linewidth=2, linestyle="dashed", label=f"Mean: {mean:.2f} hours")
 
@@ -240,6 +267,21 @@ def PlotDurationHistogram(LFE_secs, unet=True):
 
     plt.show()
 
+    print('FUNCTION CALCULATIONS OF MEAN AND MEDIAN')
+    print(median)
+    print(mean)
+    
+    print('WITHIN FUNCTION...')
+    print('min of LFE duration is: ')
+    print(min(LFE_secs))
+    print('max of LFE duration is: ')
+    print(max(LFE_secs))
+    print('median of LFE duration is: ')
+    #print(np.median(np.array(LFE_duration)))
+    print(np.median(np.array(LFE_secs)))
+    print('mean of LFE duration is: ')
+    #print(np.mean(np.array(LFE_duration)))
+    print(np.mean(np.array(LFE_secs)))
 
 
 def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
