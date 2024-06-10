@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Friday June 23rd 2023
+Created on Friday June 23rd 2023 2024
 
 @author: Caitriona Jackman
 """
@@ -20,11 +20,16 @@ from scipy.io import readsav
 def main():
     plt.rcParams.update({'font.size': 12})
 
-    unet=True
-#    data_directory = "./../data/"
+    unet=True   #use the joined list for analysis
     data_directory = "C:/Users/Local Admin/Documents/Collaborations/Jackman_LFEs/"
-    lfe_unet_data = "lfe_detections_unet.csv" # Processed using findDetectionPositions.py
+    #lfe_unet_data = "lfe_detections_unet.csv" # Processed using findDetectionPositions.py
+    lfe_unet_data = "lfe_detections_unet_2874.csv"#Processed using findDetectionPositions.py (Elizabeth's updated UNet output file)
+    
     lfe_training_data = "lfe_detections_training.csv" # "
+    #lfe_training_data = "test_times.csv" # " #placeholder file to check specific times for PPO phases (23/01/2024)
+   
+    lfe_joined_list = "LFEs_joined.csv"
+    
     trajectories_file = "cassini_output/trajectorytotal.csv" # Output from Beth's "Cassini_Plotting" repo
     ppo_file = "mag_phases_2004_2017_final.sav"
     LFE_phase_df = "lfe_with_phase.csv" # File saved by SavePPO()
@@ -32,51 +37,90 @@ def main():
     lfe_duration_split = 11 # measured in hours #this may change to become the median of the duration distribution (or some other physically meaningful number)
 
     plot = {
+        "delta_t": True,
+        "Join_LFEs": False,   #only need to run this one time to generate LFEs_joined.csv
         "duration_histograms": True,
-        "inspect_longest_lfes": True,
+        "inspect_longest_lfes": False,
         #TODO: Add function here to plot spectrogram (call radio data), and overplot polygons (call Unet json file)
-        #TODO: Action on the shortest LFEs (compare to Reed 30 minute lower bound criterion)
-        "residence_time_multiplots": True,
-        "lfe_distributions": True,
+        "residence_time_multiplots": False,
+        "lfe_distributions": False,
         "ppo_save": False,  #this takes 4-5 minutes and produces LFE_phase_df
-        "ppo_plot": True,
-        "local_ppo_plot": True
+        "ppo_plot": False,
+        "check_PPOs": False,
+        "local_ppo_plot": False
     }
 
-    #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
+
+    #the deltaT examination should happen first, then joining, then all other operations on the joined list
+
+
+    if plot["delta_t"]:
+        print("in deltat function now")
+        if unet is False:
+            print("you are trying to join the training data")
+            LFE_df = pd.read_csv(data_directory + lfe_training_data, parse_dates=['start','end'])
+        if unet is True:
+            print("running deltaT visualisation on raw unet 2874 data")
+            LFE_df = pd.read_csv(data_directory + lfe_unet_data, parse_dates=['start','end'])
+            
+        LFE_duration=LFE_df['end']-LFE_df['start']  #want this in minutes and to be smart about day/year boundaries
+        LFE_secs=[]
+        #print(LFE_secs)
+        Delta_t_LFEs(LFE_df, LFE_secs, LFE_duration, unet=unet)
+        #print("see if return works from deltaT function")
+        #time_diff_df=time_diff_df
+        #time_diff_minutes=time_diff_minutes
+        #print(np.min(np.array(time_diff_minutes)))
+        
+        
+    if plot["Join_LFEs"]:
+        if unet is False:
+            print("you are trying to join the training data")
+            LFE_df = pd.read_csv(data_directory + lfe_training_data, parse_dates=['start','end'])
+        if unet is True:
+            print("running on raw unet 2874 data")
+            LFE_df = pd.read_csv(data_directory + lfe_unet_data, parse_dates=['start','end'])
+            
+        LFE_duration=LFE_df['end']-LFE_df['start']  #want this in minutes and to be smart about day/year boundaries
+        LFE_secs=[]
+        for i in range(np.array(LFE_duration).size):
+            LFE_secs.append(LFE_duration[i].total_seconds())
+        LFE_joiner(data_directory,LFE_df, LFE_secs, unet=unet)    
+
+
+
+
+    #Now for all further operations, work off joined list.
     print('Reading in the LFE list')
-    #Unet True means the code uses the output of O'Dwyer Unet (4950 examples) 28/07/2023 - before post-processing
+    #Unet True means the code uses the output of O'Dwyer Unet (4950 examples) 28/07/2023 - before post-processing. FOLLOWING THE JOINING
     #Unet False means the code uses the training data (984 examples)
-    if unet is True:
-        LFE_df = pd.read_csv(data_directory + lfe_unet_data, parse_dates=['start','end'])
+    if unet is True: #use the joined list here (and have separate read in of the unet in the joiner code)
+    #LFE_df = pd.read_csv(data_directory + lfe_unet_data, parse_dates=['start','end'])
+        LFE_df = pd.read_csv(data_directory + lfe_joined_list, parse_dates=['start','end'])
 
-    else:
-        LFE_df = pd.read_csv(data_directory + lfe_training_dataa, parse_dates=['start','end'])
-
+    else:        
+        LFE_df = pd.read_csv(data_directory + lfe_training_data, parse_dates=['start','end'])
 
     LFE_duration=LFE_df['end']-LFE_df['start']  #want this in minutes and to be smart about day/year boundaries
-  
     LFE_secs=[]
+    
     for i in range(np.array(LFE_duration).size):
         LFE_secs.append(LFE_duration[i].total_seconds())
 
-    print('min of LFE duration is: ')
-    print(min(LFE_duration))
-    print(min(LFE_secs))
-    print('max of LFE duration is: ')
-    print(max(LFE_duration))
-    print(max(LFE_secs))
-    print('median of LFE duration is: ')
-    #print(np.median(np.array(LFE_duration)))
-    print(np.median(np.array(LFE_secs)))
-    print('mean of LFE duration is: ')
-    #print(np.mean(np.array(LFE_duration)))
-    print(np.mean(np.array(LFE_secs)))
-    
+   #print('ARTIFICIALLY REMOVING THE LFES WITH NO TRAJECTORY DATA')
+   #LFE_df.drop(index=np.linspace(0,500,501),inplace=True)
+   #LFE_df.drop(index=4440,inplace=True)
+   #LFE_df.reset_index(drop=True,inplace=True)
+
 
     if plot["duration_histograms"]:
-        PlotDurationHistogram(LFE_secs, unet=unet)
+        print("running the duration histogram on the joined events")
+        #LFE_df = pd.read_csv(data_directory + lfe_joined_list, parse_dates=['start','end'])
+        #LFE_duration=LFE_df['end']-LFE_df['start']  #want this in minutes and to be smart about day/year boundaries
+        #LFE_secs=[]
+        PlotDurationHistogram(LFE_secs)
 
+        
     if plot["inspect_longest_lfes"]:
         #Next want to explore some manual inspection of the longest LFEs to see if they're "real"
         InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration)
@@ -87,24 +131,110 @@ def main():
 
     if plot["residence_time_multiplots"]:
         ResidencePlots(trajectories, LFE_df, z_bounds=[-30, 30], unet=unet, saturation_factor=1)
+        ResidencePolar(trajectories, LFE_df)
+        return trajectories,LFE_df
         #TODO: check how saturation factor works (lower priority until after the post-processing is done)
         #TODO: Make quick sorting function to manually examine LFEs in particular LT sectors. Sort the LFEs by hrs of LT        
         #TODO ditto for latitude    
     
     if plot["lfe_distributions"]:       
-        PlotLfeDistributions(trajectories, LFE_df, unet=unet, scale="linear", long_lfe_cutoff=lfe_duration_split)
-
+        #PlotLfeDistributions(trajectories, LFE_df, unet=unet, scale="linear", long_lfe_cutoff=lfe_duration_split)
+        PlotLfeDistributions1(trajectories, LFE_df, unet=unet, scale="linear", long_lfe_cutoff=lfe_duration_split)
+        
     if plot["ppo_save"]:
-        SavePPO(data_directory + ppo_file, LFE_df, data_directory, "lfe_with_phase.csv")
+       # data=[[pd.Timestamp('2015-09-30T15'),pd.Timestamp('2015-09-30T20')],[pd.Timestamp('2015-10-01T15'),pd.Timestamp('2015-10-01T18')]]
+        #LFE_df=pd.DataFrame(data,columns=['start','end'])
+        #LFE_df=pd.DataFrame(data)
+       # SavePPO(data_directory + ppo_file, LFE_df, data_directory, "lfe_with_phaseTEST.csv")
+       SavePPO(data_directory + ppo_file, LFE_df, data_directory, "lfe_with_phase.csv")
+       
+    if plot["check_PPOs"]:
+        PPOphasecheck(data_directory + ppo_file, data_directory)
 
+    bin_width_PPO=15
     if plot["ppo_plot"]:
-        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=False)
-
+        PlotPPO(data_directory + LFE_phase_df, bin_width_PPO, LFE_df, long_lfe_cutoff=lfe_duration_split, local=False)
+        #PlotPPO(data_directory + LFE_phase_df, 15, LFE_df, long_lfe_cutoff=lfe_duration_split, local=False)
     if plot["local_ppo_plot"]:
-        PlotPPO(data_directory + LFE_phase_df, np.arange(0, 360+15, 15), LFE_df, long_lfe_cutoff=lfe_duration_split, local=True)
+        PlotPPO(data_directory + LFE_phase_df, bin_width_PPO, LFE_df, long_lfe_cutoff=lfe_duration_split, local=True)
 
-def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
+def LFE_joiner(data_directory,LFE_df,LFE_secs,unet=True):
+    #print("want to examine dt between successive LFEs and join those which are short")
+    time_diff_df=pd.DataFrame({'st':LFE_df['start'][1:].values, 'en':LFE_df['end'][:-1].values})
+    time_diff_minutes=time_diff_df.st-time_diff_df.en
+    time_diff_minutes = [time_diff_minute.total_seconds()/60. for time_diff_minute in time_diff_minutes]
+    #print("checking time difference")
+    
+    starts_joined=[]
+    ends_joined=[]
+    x_ksm_joined=[]
+    y_ksm_joined=[]
+    z_ksm_joined=[]
+    label_joined=[]
+    tdm=np.array(time_diff_minutes)
+    starts_joined.append(LFE_df['start'][0])    #manually fill the first LFE (short gap after)
+    ends_joined.append(LFE_df['end'][0])    #manually fill the first LFE (short gap after)
+    x_ksm_joined.append(LFE_df['x_ksm'][0]) #manually fill the first LFE (short gap after)
+    y_ksm_joined.append(LFE_df['y_ksm'][0]) #manually fill the first LFE (short gap after)
+    z_ksm_joined.append(LFE_df['z_ksm'][0]) #manually fill the first LFE (short gap after)
+    label_joined.append(LFE_df['label'][0]) #manually fill the first LFE (short gap after)
+    
+    iter_skip=True
+    for i in range(tdm.size):
+        if iter_skip:
+            #print("iteration skipped")
+            iter_skip=False
+            continue
+        #print("iteration number:")
+        #print(i)
+        if tdm[i] >10:  #10 minute cutoff for between events  
+            #just keep starts and end as in original list
+            starts_joined.append(LFE_df['start'][i])
+            ends_joined.append(LFE_df['end'][i])#
+            x_ksm_joined.append(LFE_df['x_ksm'][i])
+            y_ksm_joined.append(LFE_df['y_ksm'][i])
+            z_ksm_joined.append(LFE_df['z_ksm'][i])
+            label_joined.append(LFE_df['label'][i])
+            #print("long gap and no joining")    
+            #print(i)
+        else:
+            #keep start as original list and revised end as next entry
+            print("short gap and joining")
+            print(LFE_df['start'][i])
+            starts_joined.append(LFE_df['start'][i])    
+            ends_joined.append(LFE_df['end'][i+1])
+            x_ksm_joined.append(LFE_df['x_ksm'][i])
+            y_ksm_joined.append(LFE_df['y_ksm'][i])
+            z_ksm_joined.append(LFE_df['z_ksm'][i])
+            label_joined.append(LFE_df['label'][i])
+            iter_skip=True   #want it to skip an iteration
+            
+        
+    #now make a new dataframe with the joined LFEs
+    LFE_df_joined=pd.DataFrame({'start':starts_joined,'end':ends_joined,'x_ksm':x_ksm_joined,'y_ksm':y_ksm_joined,'z_ksm':z_ksm_joined,'label':label_joined})  
+    LFE_duration_joined=LFE_df_joined['end']-LFE_df_joined['start']  #want this in minutes and to be smart about day/year boundaries
+  
+    LFE_secs_joined=[]
+    for i in range(np.array(LFE_duration_joined).size):
+        LFE_secs_joined.append(LFE_duration_joined[i].total_seconds())
 
+    #Add the duration to the new datafram
+    LFE_df_joined['duration']=LFE_secs_joined
+    #breakpoint()
+    file_name='LFEs_joined.csv'
+    print(f"Saving new csv file to {data_directory+file_name}")
+    LFE_df_joined.to_csv(data_directory + file_name)
+    
+    print("printing the n elements in new LFE joined")
+    print(LFE_df_joined)
+
+    return LFE_df_joined,LFE_secs_joined
+    
+     
+
+def PlotPPO(file_path, bin_width, LFE_df, long_lfe_cutoff, unet=True, local=False):
+
+    bins=np.arange(0, 360+bin_width, bin_width)
     data = pd.read_csv(file_path)
 
     #TODO: Check with Gabs - is this how to start treatment of PPOs at start?
@@ -139,24 +269,38 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
         local_phase_north = np.array(local_phase_north)
         local_phase_south = np.array(local_phase_south)
 
-    #long_lfe_cutoff is set to lfe_duration_split, which for now (28/07) is set to 11 hours.
-    short_LFEs = np.where(LFE_df["duration"] <= long_lfe_cutoff*60*60)
-    long_LFEs = np.where(LFE_df["duration"] > long_lfe_cutoff*60*60)
+    #long_lfe_cutoff is set to lfe_duration_split, which for now (January 2024) is set to 11 hours.
+    short_LFEs, = np.where(LFE_df["duration"] <= long_lfe_cutoff*60*60)
+    #print("Short LFEs size")
+    #print(short_LFEs.size)
+    
+    long_LFEs, = np.where(LFE_df["duration"] > long_lfe_cutoff*60*60)
+    #print("Long LFEs size")
+    #print(long_LFEs.size)
+
 
     if local is False:
         fig, axes = plt.subplots(2, 1, figsize=(8, 8))
         ax_north, ax_south = axes
 
-        ax_north.hist([north[i] for i in short_LFEs], bins=bins, color="indianred")
-        ax_north.hist([north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
-
-        ax_south.hist([south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
-        ax_south.hist([south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
-
-
-        ax_north.set_title("North Phase")
         
+        n_north_short,bin_edges=np.histogram([north[i] for i in short_LFEs], bins=bins)
+        ax_north.plot(bins[:-1]+bin_width/2.,(n_north_short/short_LFEs.size)*100.,color="indianred",linewidth=6)
+        
+        n_north_long,bin_edges=np.histogram([north[i] for i in long_LFEs], bins=bins)
+        ax_north.plot(bins[:-1]+bin_width/2.,(n_north_long/long_LFEs.size)*100.,color="mediumturquoise",linewidth=6)
+        
+       
+        n_south_short,bin_edges=np.histogram([south[i] for i in short_LFEs], bins=bins)
+        ax_south.plot(bins[:-1]+bin_width/2.,(n_south_short/short_LFEs.size)*100.,color="indianred",linewidth=6)
+
+        n_south_long,bin_edges=np.histogram([south[i] for i in long_LFEs], bins=bins)
+        ax_south.plot(bins[:-1]+bin_width/2.,(n_south_long/long_LFEs.size)*100.,color="mediumturquoise",linewidth=6)
+
+        ax_north.set_title("North Phase")     
         ax_south.set_title("South Phase")
+        ax_north.set_ylim(bottom=0)
+        ax_south.set_ylim(bottom=0)
         ax_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
 
         titleTag = "PPO"
@@ -165,12 +309,25 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
         fig, axes = plt.subplots(2, 1, figsize=(8, 8))
         ax_local_north, ax_local_south = axes
 
-        ax_local_north.hist([local_phase_north[i] for i in short_LFEs], bins=bins, color="indianred")
-        ax_local_north.hist([local_phase_north[i] for i in long_LFEs], bins=bins, color="mediumturquoise")
+       # ax_local_north.hist([local_phase_north[i] for i in short_LFEs], bins=bins, color="indianred",density=True)
+       # ax_local_north.hist([local_phase_north[i] for i in long_LFEs], bins=bins, color="mediumturquoise",density=True,histtype='step',linewidth=6)
 
-        ax_local_south.hist([local_phase_south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
-        ax_local_south.hist([local_phase_south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours")
+        #ax_local_south.hist([local_phase_south[i] for i in short_LFEs], bins=bins, color="indianred", label=f"duration < {long_lfe_cutoff} hours")
+        #ax_local_south.hist([local_phase_south[i] for i in long_LFEs], bins=bins, color="mediumturquoise", label=f"duration > {long_lfe_cutoff} hours",histtype='step',linewidth=6)
 
+        n_north_short,bin_edges=np.histogram([north[i] for i in short_LFEs], bins=bins)
+        ax_local_north.plot(bins[:-1]+bin_width/2.,(n_north_short/short_LFEs.size)*100.,color="indianred",linewidth=6)
+    
+        n_north_long,bin_edges=np.histogram([north[i] for i in long_LFEs], bins=bins)
+        ax_local_north.plot(bins[:-1]+bin_width/2.,(n_north_long/long_LFEs.size)*100.,color="mediumturquoise",linewidth=6)
+    
+    
+        n_south_short,bin_edges=np.histogram([south[i] for i in short_LFEs], bins=bins)
+        ax_local_south.plot(bins[:-1]+bin_width/2.,(n_south_short/short_LFEs.size)*100.,color="indianred",linewidth=6)
+    
+        n_south_long,bin_edges=np.histogram([south[i] for i in long_LFEs], bins=bins)
+        ax_local_south.plot(bins[:-1]+bin_width/2.,(n_south_long/long_LFEs.size)*100.,color="mediumturquoise",linewidth=6)
+    
         ax_local_north.set_title("North Local Phase")
         ax_local_south.set_title("South Local Phase")
 
@@ -193,6 +350,150 @@ def PlotPPO(file_path, bins, LFE_df, long_lfe_cutoff, unet=True, local=False):
 
     plt.tight_layout()
     plt.show()
+
+
+
+    #Now split by hemisphere
+    #calculation of LFE range, latitude, local time
+    lfe_x, lfe_y, lfe_z = (LFE_df["x_ksm"], LFE_df["y_ksm"], LFE_df["z_ksm"])
+    LFE_r=np.sqrt(lfe_x**2 + lfe_y**2 + lfe_z**2)   #range in RS
+    theta = np.arctan2(lfe_y, lfe_x)
+    LFE_lat=np.tan(lfe_z/LFE_r)
+    LFE_lat_deg=LFE_lat*(180./np.pi)
+    #theta = np.arctan2(y, x)
+    #not sure what longitude_rads is? replace with theta
+    longitude_degs = theta*180/np.pi
+    LFE_lt=((longitude_degs+180)*24/360) % 24
+
+    #Check positive and negative latitudes        
+    NorthHem, = np.where(LFE_lat_deg > 0)
+    SouthHem, = np.where(LFE_lat_deg < 0)
+    print('Southern hemisphere LFEs:')
+    print(SouthHem.size)
+    print('Northern hemisphere LFEs:')
+    print(NorthHem.size)
+
+
+    if local is False:
+        fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+        ax_north, ax_south = axes
+       
+        n_north_SouthHem,bin_edges=np.histogram([north[i] for i in SouthHem], bins=bins)
+        ax_north.plot(bins[:-1]+bin_width/2.,(n_north_SouthHem/SouthHem.size)*100.,color="indianred",linewidth=6)
+       
+        n_north_NorthHem,bin_edges=np.histogram([north[i] for i in NorthHem], bins=bins)
+        ax_north.plot(bins[:-1]+bin_width/2.,(n_north_NorthHem/NorthHem.size)*100.,color="mediumturquoise",linewidth=6)
+         
+        n_south_SouthHem,bin_edges=np.histogram([south[i] for i in SouthHem], bins=bins)
+        ax_south.plot(bins[:-1]+bin_width/2.,(n_south_SouthHem/SouthHem.size)*100.,color="indianred",linewidth=6)
+
+        n_south_NorthHem,bin_edges=np.histogram([south[i] for i in NorthHem], bins=bins)
+        ax_south.plot(bins[:-1]+bin_width/2.,(n_south_NorthHem/NorthHem.size)*100.,color="mediumturquoise",linewidth=6)
+
+        ax_north.set_title("North Phase. Red=SouthHem, Blue=NorthHem")     
+        ax_south.set_title("South Phase. Red=SouthHem, Blue=NorthHem")
+        ax_north.set_ylim(bottom=0)
+        ax_south.set_ylim(bottom=0)
+        ax_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
+
+        titleTag = "PPO"
+
+    else:
+        fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+        ax_local_north, ax_local_south = axes
+
+        n_north_SouthHem,bin_edges=np.histogram([north[i] for i in SouthHem], bins=bins)
+        ax_local_north.plot(bins[:-1]+bin_width/2.,(n_north_SouthHem/SouthHem.size)*100.,color="indianred",linewidth=6)
+   
+        n_north_NorthHem,bin_edges=np.histogram([north[i] for i in NorthHem], bins=bins)
+        ax_local_north.plot(bins[:-1]+bin_width/2.,(n_north_NorthHem/NorthHem.size)*100.,color="mediumturquoise",linewidth=6)
+    
+        n_south_SouthHem,bin_edges=np.histogram([south[i] for i in SouthHem], bins=bins)
+        ax_local_south.plot(bins[:-1]+bin_width/2.,(n_south_SouthHem/SouthHem.size)*100.,color="indianred",linewidth=6)
+        
+        n_south_NorthHem,bin_edges=np.histogram([south[i] for i in NorthHem], bins=bins)
+        ax_local_south.plot(bins[:-1]+bin_width/2.,(n_south_NorthHem/NorthHem.size)*100.,color="mediumturquoise",linewidth=6)
+   
+        ax_local_north.set_title("North Local Phase. Red=SouthHem, Blue=NorthHem")
+        ax_local_south.set_title("South Local Phase. Red=SouthHem, Blue=NorthHem")
+
+        ax_local_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
+
+        titleTag = "Local"
+
+    for ax in fig.get_axes():
+        ax.set_ylabel("# of LFEs")
+        ax.set_xlabel("Phase ($^\circ$)")
+        ax.margins(x=0)
+        ax.set_xticks(bins[0::2])
+
+    if unet:
+        dataTag="UNET Output"
+    else:
+        datTag="Training Data"
+       
+    fig.suptitle(f"Northern and Southern {titleTag} Phases ({dataTag})")
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+
+def PPOphasecheck(file_path, data_directory):
+    #calculates PPO phases for individual dates/times
+    print("Finding LFE Phase for a single example point")
+
+    #print(f"Loading {file_path}")
+    ppo_df = readsav(file_path)
+
+    south_time = ppo_df["south_model_time"] # minutes since 2004-01-01 00:00:00
+    south_phase = ppo_df["south_mag_phase"]
+
+    north_time = ppo_df["north_model_time"]
+    north_phase = ppo_df["north_mag_phase"]
+
+    doy2004_0 = pd.Timestamp(2004, 1, 1)
+    lfe_start_time=pd.Timestamp(2015,9,30,15)
+        
+    lfe_start_doy2004 = (lfe_start_time - doy2004_0).total_seconds() / 60 / 60 / 24 # days since 2004-01-01 00:00:00
+        # Find minimum time difference
+    south_index = (np.abs(south_time - lfe_start_doy2004)).argmin()
+    north_index = (np.abs(north_time - lfe_start_doy2004)).argmin()
+    
+    south_phase_LFE_time=(south_phase[south_index])%360
+    north_phase_LFE_time=(north_phase[north_index])%360
+    
+    print(south_phase_LFE_time)
+    print(north_phase_LFE_time)
+    
+    #now need the x,y,z position for that given time                   
+    # x = LFE_df["x_ksm"]
+    # y = LFE_df["y_ksm"]
+    # z = LFE_df["z_ksm"]
+
+    # spacecraft_r, spacecraft_theta, spacecraft_z = CartesiansToCylindrical(x, y, z)
+
+    # # Calculate local time
+    # spacecraft_lt = []
+    # for longitude_rads in spacecraft_theta:
+    #     longitude_degs = longitude_rads*180/np.pi
+    #     spacecraft_lt.append(((longitude_degs+180)*24/360) % 24)
+
+    # azimuth = []
+    # for lt in spacecraft_lt:
+    #     azimuth.append(((lt-12) * 15 + 720) % 360)
+
+
+    # local_phase_north = []
+    # local_phase_south = []
+    # for north_phase, south_phase, az in zip(north, south, azimuth):
+    #     local_phase_north.append(((north_phase - az) + 720) % 360)
+    #     local_phase_south.append(((south_phase - az) + 720) % 360)
+
+    # local_phase_north = np.array(local_phase_north)
+    # local_phase_south = np.array(local_phase_south)
+
 
 
 def SavePPO(file_path, LFE_df, data_directory, file_name):
@@ -231,57 +532,107 @@ def SavePPO(file_path, LFE_df, data_directory, file_name):
     LFE_df.to_csv(data_directory + file_name)
                        
 
-def PlotDurationHistogram(LFE_secs, unet=True):
+def PlotDurationHistogram(LFE_secs):
     fig, ax = plt.subplots(1, tight_layout=True, sharey = True, figsize=(8,8))
-    ax.hist(np.array(LFE_secs)/(60.*24.),bins=np.linspace(0,250,126), label=f"N = {len(LFE_secs)}")
+#    ax.hist(np.array(LFE_secs)/(60.*24.),bins=np.linspace(0,250,126), label=f"N = {len(LFE_secs)}")
+    ax.hist(np.array(LFE_secs)/(60.*60.),bins=np.linspace(0,250,126), label=f"N = {len(LFE_secs)}")
+    #print(LFE_secs)
 
-    if unet:
-        ax.set_title('Histogram of duration of LFEs across Cassini mission (UNET Output)')
-    else:
-        ax.set_title('Histogram of duration of LFEs across Cassini mission (Training Data)')
+    #if unet:
+    ax.set_title('Histogram of duration of LFEs across Cassini mission (Joined List)')
+    #else:
+    #    ax.set_title('Histogram of duration of LFEs across Cassini mission (UNET false)')
 
     ax.set_xlabel('LFE duration (hours)')
     ax.set_ylabel('# of LFEs')
     ax.set_xscale('log')
+    ax.set_yscale('log')
 
-    median = np.median(np.array(LFE_secs)/(60.*24.))    #values in hours (according to Daragh)
-    mean = np.mean(np.array(LFE_secs)/(60.*24.))     #values in hours (according to Daragh)
-
-    print('FUNCTION CALCULATIONS OF MEAN AND MEDIAN')
-    print(median)
-    print(mean)
-
-    #try alternative calculation of mean and median    
-    median = np.median(np.array(LFE_secs)/(60.*60.))    #values in seconds
-    mean = np.mean(np.array(LFE_secs)/(60.*60.))     #values in seconds
+    median = np.median(np.array(LFE_secs)/(60.*60.))    #values from sec to hours
+    mean = np.mean(np.array(LFE_secs)/(60.*60.))     #values from sec to hours
     
-    print('FUNCTION CALCULATIONS OF MEAN AND MEDIAN')
-    print(median)
-    print(mean)
-
-    #I think daragh used the wrong calculation for mean and median. need to calculate it then divide by 3600
-    ax.axvline(x=median, color="indianred", linewidth=2, label=f"Median: {median:.2f} hours")
-    ax.axvline(x=mean, color="indianred", linewidth=2, linestyle="dashed", label=f"Mean: {mean:.2f} hours")
-
-    plt.legend()
-
-    plt.show()
-
-    print('FUNCTION CALCULATIONS OF MEAN AND MEDIAN')
-    print(median)
-    print(mean)
-    
-    print('WITHIN FUNCTION...')
+    #print('WITHIN FUNCTION...')
     print('min of LFE duration is: ')
     print(min(LFE_secs))
     print('max of LFE duration is: ')
     print(max(LFE_secs))
     print('median of LFE duration is: ')
-    #print(np.median(np.array(LFE_duration)))
     print(np.median(np.array(LFE_secs)))
     print('mean of LFE duration is: ')
-    #print(np.mean(np.array(LFE_duration)))
     print(np.mean(np.array(LFE_secs)))
+
+    ax.axvline(x=median, color="indianred", linewidth=2, label=f"Median: {median:.2f} hours")
+    ax.axvline(x=mean, color="indianred", linewidth=2, linestyle="dashed", label=f"Mean: {mean:.2f} hours")
+    ax.axvline(x=12.0, color="indianred", linewidth=2, linestyle="dotted", label=f"Long cutoff: 11 hours")
+
+    plt.legend()
+
+    plt.show()
+
+ 
+
+def Delta_t_LFEs(LFE_df, LFE_secs, LFE_duration, unet=True):
+    
+    time_diff_df=pd.DataFrame({'st':LFE_df['start'][1:].values, 'en':LFE_df['end'][:-1].values})
+    time_diff_minutes=time_diff_df.st-time_diff_df.en
+    time_diff_minutes = [time_diff_minute.total_seconds()/60. for time_diff_minute in time_diff_minutes]
+       
+    fig, ax = plt.subplots(1, tight_layout=True, sharey = True, figsize=(8,8))
+    #ax.hist(time_diff_minutes,bins=100,range=(0,300))
+    n,bins,patches=ax.hist(time_diff_minutes,bins=30,range=(0,300))
+    #, label=f"N = {len(time_diff_minutes)}")
+    #, label=f"N = {len(time_diff_minutes)}" #bins are 10 minutes wide
+   # ax.hist(np.array(LFE_secs)/(60.*60.),bins=np.linspace(0,250,126), label=f"N = {len(LFE_secs)}")
+   
+    print("bins","patches","n")
+    print(bins[0],n[0])#how to find the indices of where these deltat<10 minutes are?
+    #fart=df.where(df.time_diff_minutes<10)  #np.where doesn't work either???
+    #print(fart)
+    #print(bins[1],n[1])
+    #print(bins[2],n[2])
+    if unet:
+        ax.set_title('Histogram of LFE deltaT across Cassini mission (UNet Output)')
+    else:
+        ax.set_title('Histogram of LFE deltaT across Cassini mission (Training Data)')
+
+    ax.set_xlabel('LFE time difference (minutes)')
+    ax.set_ylabel('# of LFEs')
+    ax.set_xlim([0,300])
+
+    median = np.median(np.array(time_diff_minutes))    #values from sec to hours
+    mean = np.mean(np.array(time_diff_minutes))     #values from sec to hours
+    minimum = np.min(np.array(time_diff_minutes))    #values from sec to hours
+    maximum = np.max(np.array(time_diff_minutes))     #values from sec to hours
+    
+    #print('FUNCTION CALCULATIONS OF MEAN AND MEDIAN')
+    print('median of deltaT is: ')
+    print(median)
+    print('mean of deltaT is: ')
+    print(mean)
+    print('min of deltaT is: ')
+    print(minimum)
+    print('max of deltaT is: ')
+    print(maximum)
+    
+
+    ax.axvline(x=10000, color="blue", linewidth=2, label=f"N = {len(time_diff_minutes)}")
+    ax.axvline(x=median, color="indianred", linewidth=2, label=f"Median: {median:.2f} hours")
+    ax.axvline(x=mean, color="indianred", linewidth=2, linestyle="dashed", label=f"Mean: {mean:.2f} hours")
+    #ax.axvline(x=12.0, color="indianred", linewidth=2, linestyle="dotted", label=f"Long cutoff: 11 hours")
+
+    plt.legend()
+
+    plt.show()
+  
+  
+    #If we have lots of delta_T that are about 30 minutes or less, consider a simple manual joining 
+    #Thus make a new LFE_df_joined with (most) of the same parameters as LFE_df (start, end, duration, xyz). No label or probability as these will change
+    #Then return this LFE_df_joined back to main so it can be called for the PPOs, duration histogram etc. etc.
+    #For this need to be able to plot a spectrogram and show how the joining has been conducted
+    #Search Elizabeth code on GitHub and my 2023PRE paper code for spectrogram plotting
+    #Python_code/Cassini_plotting_main/Plot_spectrogram works! [haven't tried the polygons over it yet]
+    
+    return (time_diff_df,time_diff_minutes)
 
 
 def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
@@ -294,6 +645,32 @@ def InspectLongestLFEs(LFE_df, LFE_secs, LFE_duration):
     #Want to be able to look at these spectrograms to see if any need to be removed as outliers/unphysical
 
 
+
+def ResidencePolar(trajectories_df,LFE_df):
+    #Using Alexandra's polar plotting code rather than X-Y polar plots
+    
+    print(LFE_df)
+    #call Cassini trajectory
+    #call LFE times
+    #match LFE times to get the R, lat, LT of each from Cassini trajectory
+    #for i in range(500,503):
+    LFE_rad=[]
+    LFE_lat=[]
+    LFE_LT=[]
+    for i in range(len(LFE_df)):
+        #print(LFE_df.start.iloc[i])
+        #print(trajectories_df.loc[trajectories_df.datetime_ut + pd.Timedelta(seconds=30) == LFE_df.start.iloc[i]]) 
+        LFE_rad.append(trajectories_df.loc[trajectories_df.datetime_ut + pd.Timedelta(seconds=30) == LFE_df.start.iloc[i], 'range'].values[0])
+        LFE_lat.append(trajectories_df.loc[trajectories_df.datetime_ut + pd.Timedelta(seconds=30) == LFE_df.start.iloc[i], 'lat'].values[0])
+        LFE_LT.append(trajectories_df.loc[trajectories_df.datetime_ut + pd.Timedelta(seconds=30) == LFE_df.start.iloc[i], 'localtime'].values[0])
+    
+    #define bins of the histogram
+    #bin: (i) time spent by spacecraft in bins, (ii) #LFE detections in each bin, (iii) normalise detections by residence time
+    #plot
+    print("i love IDL")
+    
+    
+    
 def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, theta_bins=24, unet=True, saturation_factor=1):
 
     r_bins = int(max_r / r_bin_size)
@@ -425,8 +802,63 @@ def ResidencePlots(trajectories_df, LFE_df, z_bounds, max_r=80, r_bin_size=10, t
 
     plt.show()
 
-def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-20, 20, 40), lt_hist_bins=np.linspace(0, 24, 48), unet=True, scale="linear", long_lfe_cutoff=11):
+def PlotLfeDistributions1(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-20, 20, 40), lt_hist_bins=np.linspace(0, 24, 48), unet=True, scale="linear", long_lfe_cutoff=11):
+#this is my code with simplified finding of R, lat, LT etc.
+
+    lfe_x, lfe_y, lfe_z = (LFE_df["x_ksm"], LFE_df["y_ksm"], LFE_df["z_ksm"])
+    LFE_r=np.sqrt(lfe_x**2 + lfe_y**2 + lfe_z**2)   #range in RS
+    theta = np.arctan2(lfe_y, lfe_x)
+    LFE_lat=np.tan(lfe_z/LFE_r)
+    LFE_lat_deg=LFE_lat*(180./np.pi)
+    #theta = np.arctan2(y, x)
+    #not sure what longitude_rads is? replace with theta
+    longitude_degs = theta*180/np.pi
+    LFE_lt=((longitude_degs+180)*24/360) % 24
     
+        #need to check that these local times, latitudes are calculated correctly!
+
+    #Local time histogram
+    plt.hist(LFE_lt,bins=23)
+    plt.xlabel='LFE LT (hours)'
+    plt.ylabel='# of LFEs'
+  
+    if unet:
+        plt.title('Histogram of LFE LT across Cassini mission (UNET Output)')
+    else:
+        plt.title('Histogram of LFE LT across Cassini mission (Training Data)')
+
+    plt.show()
+
+     #Local time histogram
+    plt.hist(LFE_lat_deg,bins=80)
+    plt.xlabel='LFE Latitude (degrees)'
+    plt.ylabel='# of LFEs'
+
+    if unet:
+        plt.title('Histogram of LFE Latitude across Cassini mission (UNET Output)')
+    else:
+        plt.title('Histogram of LFE Latitude across Cassini mission (Training Data)')
+
+    plt.show()
+
+
+    #Local time histogram
+    #Set hard limit in maximum of range to be 100 RS (to avoid pre-SOI interval)
+    plt.hist(LFE_r,range=[0,100],bins=50)
+    plt.xlabel='LFE Range (RS)'
+    plt.ylabel='# of LFEs'
+
+    if unet:
+        plt.title('Histogram of LFE Range across Cassini mission (UNET Output)')
+    else:
+        plt.title('Histogram of LFE Range across Cassini mission (Training Data)')
+
+    plt.show()
+
+
+
+def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist_bins=np.linspace(0, 160, 160), lat_hist_bins=np.linspace(-20, 20, 40), lt_hist_bins=np.linspace(0, 24, 48), unet=True, scale="linear", long_lfe_cutoff=11):
+ #this has incorrect latitude calculation - needs to be coverted from radians to degrees   
     fig, axes = plt.subplots(3, 1, figsize=(8, 8))
     (r_axis, lat_axis, lt_axis) = axes
     # Define secondary axes for spacecraft time
@@ -529,10 +961,16 @@ def PlotLfeDistributions(trajectories_df, LFE_df, split_by_duration=True, r_hist
     fig.tight_layout()
     plt.show()
 
+    print('checking the calculated latitude')
+    print(max(lfe_lat))
+    #print('min of LFE duration is: ')
+    #print(min(LFE_secs))
+
 
 
 def CartesiansToCylindrical(x, y, z):
-    r = np.sqrt(x**2 + y**2)
+    #r = np.sqrt(x**2 + y**2)    #r was originally defined as this
+    r = np.sqrt(x**2 + y**2 + z**2)
     theta = np.arctan2(y, x)
     return (r, theta, z)
 
