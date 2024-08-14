@@ -22,7 +22,7 @@ LFE_data_directory (I.E. "C:/Users/Local Admin/Documents/Collaborations/Jackman_
  
 * 20040101000000_20170915115700_ephemeris.csv -> SPICE-generated (ZENODO link)
 
-* 2004001_2017258_ephemeris.csv -> SPIC-generated (ZENODO link)
+* 2004001_2017258_ephemeris.csv -> SPICE-generated (ZENODO link)
 
 * LFEs_joined_ephemeris.csv -> SPICE-generated (ZENODO link)
 
