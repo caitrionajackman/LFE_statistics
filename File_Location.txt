@@ -29,9 +29,10 @@ LFE_data_directory (I.E. "C:/Users/Local Admin/Documents/Collaborations/Jackman_
 
 input_data_fp (I.E. "C:/Users/Local Admin/Documents/Data")
 ---------------------------------------------------------------------------------
-* /intpwr -> linked in README (Selection_of_Low_Frequency_Extensions_of_Saturn_Kilometric_Radiation)
+* /intpwr (i.e. /mnt/magnetosphere/cassini_saturn_skr/integrated_power_and_trajectory) -> linked in README (Selection_of_Low_Frequency_Extensions_of_Saturn_Kilometric_Radiation)
 
-* /SKR_spectrogram_data -> linked in README (Selection_of_Low_Frequency_Extensions_of_Saturn_Kilometric_Radiation)
+* /SKR_spectrogram_data (i.e. /mnt/magnetosphere/cassini_saturn_skr/SKR_spectrogram_data )-> linked in README (Selection_of_Low_Frequency_Extensions_of_Saturn_Kilometric_Radiation)
 
-* /trajectory -> linked in README (Selection_of_Low_Frequency_Extensions_of_Saturn_Kilometric_Radiation)
+* /trajectory (i.e. /mnt/magnetosphere/cassini_saturn_skr/cassini_trajectory )-> linked in README (Selection_of_Low_Frequency_Extensions_of_Saturn_Kilometric_Radiation)
 
+^^^ All found on ariadne servers == i.e. provides path to respective directory on Ariadne server 
