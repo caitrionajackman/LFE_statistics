@@ -139,4 +139,4 @@ config = configparser.ConfigParser()
 config.read('config_LFE_stats.ini')   
 LFE_data_directory = config['filepaths']['LFE_data_directory'] # wherever file "LFEs_joined.csv" is locatied
 
-Cassini_Pos_LFE(data_directory = LFE_data_directory)
+Cassini_Pos_LFE(data_directory = LFE_data_directory) # ----- EX. /Sample_Visualizations/Cassini_Position_LFE.jpeg

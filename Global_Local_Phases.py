@@ -434,3 +434,7 @@ def local_phase_figures(lfe_phase_no_nan, trajectories_df):
     fig.tight_layout()
     #plt.savefig("Countours_Local_Phases.jpeg", dpi = 300)
     plt.show()
+
+# Actual Code 
+global_phase_figures(lfe_phase_no_nan) # ----- EX. /Sample_Visualizations/Contours_Global_Joined_LFEs.jpeg
+local_phase_figures(lfe_phase_no_nan) # ----- EX. /Sample_Visualizations/Contours_Local_Joined_LFEs.jpeg

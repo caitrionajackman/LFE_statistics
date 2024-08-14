@@ -247,4 +247,4 @@ def step_plot_R_LST_Lat(data_directory = LFE_data_directory):
     #plt.savefig("R_LST_Lat.jpeg", dpi = 300)
 
 # Actual Code to Plot Step Plot of LFE Distribution 
-step_plot_R_LST_Lat(data_directory = LFE_data_directory)
+step_plot_R_LST_Lat(data_directory = LFE_data_directory) # ----- EX. /Sample_Visualizations/R_LST_Lat.jpeg

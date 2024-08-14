@@ -56,8 +56,8 @@ def main():
         "two_spectrograms": False,
         "spectrogram_polygons": False,  #for this call Unet json file
         "B_time_series": False,
-        "joining_process_polygons": False, # SHOWS JOINING PROCESS. a) two separate polys, b) joined polys
-        "spectrogram_joint_polygons": True # Same as "two_spectograms" but now using JOINT .json file
+        "joining_process_polygons": False, # SHOWS JOINING PROCESS. a) two separate polys, b) joined polys ----- EX. /Sample_Visualizations/Example_Joining_Process.png
+        "spectrogram_joint_polygons": True # Same as "two_spectograms" but now using JOINT .json file ----- EX. /Sample_Visualizations/Sample_Joined_Polygon.png
     }
 
     unet=True

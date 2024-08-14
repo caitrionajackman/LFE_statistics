@@ -179,4 +179,4 @@ config = configparser.ConfigParser()
 config.read('config_LFE_stats.ini')   
 LFE_data_directory= config['filepaths']['LFE_data_directory'] # Directory where SN_ms_tot_V2.0.csv, SN_d_tot_V2.0.csv, and LFEs_joined.csv are located
 
-Sunspot_LFE_Relation(data_directory=LFE_data_directory)
+Sunspot_LFE_Relation(data_directory=LFE_data_directory) # ----- EX. /Sample_Visualizations/Sunspot_LFE_Subplots.jpeg
