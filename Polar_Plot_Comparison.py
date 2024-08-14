@@ -268,8 +268,8 @@ def polar_plot_lfe_comparison(input_data_fp):
     lab_pos = ax_dur_det.get_rlabel_position()
     ax_dur_det.text(np.radians(lab_pos - 15), ax_dur_det.get_rmax() * 0.75, '$R_S$', ha = 'center', va = 'center', fontsize = csize, color = 'white')
 
-    #plt.savefig("hehe.jpeg", dpi = 300)
     fig.tight_layout()
+    plt.savefig("/Users/hannamag/Desktop/LFE_statistics_original/Sample_Visualizations/Polar_Plot.jpeg", dpi = 300)
     plt.show()
 
 
