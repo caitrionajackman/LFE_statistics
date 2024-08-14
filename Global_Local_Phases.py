@@ -12,6 +12,7 @@ import configparser
 from tqdm import tqdm
 from scipy.io import readsav
 from matplotlib.patches import Circle, PathPatch
+import os
 from LFE_statistics import *
 
 # Planetary Period Oscillations Function - need updated .sav file
@@ -53,7 +54,10 @@ def SavePPO(file_path, LFE_df, data_directory, file_name):
     LFE_df.to_csv(data_directory + file_name)
 
 # Defined paths - adjust according to where EPHEMERIS data from SPICE is hosted
-data_directory = "C:/Users/Local Admin/Documents/Collaborations/Jackman_LFEs/"
+config = configparser.ConfigParser()
+config.read('config_LFE_stats.ini')   
+data_directory = config['filepaths']['LFE_data_directory'] # Directory where SN_ms_tot_V2.0.csv, SN_d_tot_V2.0.csv, and LFEs_joined.csv are located
+
 original_unet = "lfe_detections_unet_2874.csv"
 lfe_joined_list = "LFEs_joined.csv"
 one_min_resol_mission = "20040101000000_20170915115700_ephemeris.csv" # whole mission (2004/01/01 00:00:00 - 2017/09/15 11:56:00) coverage
@@ -75,7 +79,11 @@ join_unet['z_ksm'] = LFE_join['z_KSM']
 # join_unet.to_csv("LFEs_joined_times_range_lst_lat.csv") 
 
 # Generate joined dataframe with global phases
-SavePPO(data_directory + ppo_file, join_unet, data_directory, "Joined_LFEs_w_phases.csv")
+if os.path.exists(data_directory + "Joined_LFEs_w_phases.csv") == True:
+    pass
+else:
+    SavePPO(data_directory + ppo_file, join_unet, data_directory, "Joined_LFEs_w_phases.csv")
+
 lfe_phases = pd.read_csv(data_directory + "Joined_LFEs_w_phases.csv", index_col = 0)
 
 # Save new index LIST w/out south phase nans - missing calibration comparisons in original .sav file

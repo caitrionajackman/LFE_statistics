@@ -16,15 +16,19 @@ from scipy.io import readsav
 from matplotlib.patches import Circle, PathPatch
 
 # Defined paths - adjust according to where EPHEMERIS data from SPICE is hosted
-data_directory = "C:/Users/Local Admin/Documents/Collaborations/Jackman_LFEs/"
+config = configparser.ConfigParser()
+config.read('config_LFE_stats.ini')   
+LFE_data_directory= config['filepaths']['LFE_data_directory'] # Directory where SN_ms_tot_V2.0.csv, SN_d_tot_V2.0.csv, and LFEs_joined.csv are located
+
 original_unet = "lfe_detections_unet_2874.csv"
 lfe_joined_list = "LFEs_joined.csv"
+
 one_min_resol_mission = "20040101000000_20170915115700_ephemeris.csv" # whole mission (2004/01/01 00:00:00 - 2017/09/15 11:56:00) coverage
 one_min_resol_og = "2004001_2017258_ephemeris.csv" # original LFE list coverage
 one_min_resol_joined = "LFEs_joined_ephemeris.csv" # joined LFE list coverage
 ppo_file = "mag_phases_2004_2017_final.sav" # Phases Calibration Data
 
-def step_plot_R_LST_Lat():
+def step_plot_R_LST_Lat(data_directory = LFE_data_directory):
     # Defined by 1 minute resolution of Cassini - Ephemeris Generation SPICE - entire mission 01-01-2004 to 09-15-2017
     trajectories_df = pd.read_csv(data_directory + one_min_resol_mission)
     LFE_og = pd.read_csv(data_directory + one_min_resol_og)
@@ -243,4 +247,4 @@ def step_plot_R_LST_Lat():
     #plt.savefig("R_LST_Lat.jpeg", dpi = 300)
 
 # Actual Code to Plot Step Plot of LFE Distribution 
-step_plot_R_LST_Lat()
+step_plot_R_LST_Lat(data_directory = LFE_data_directory)

@@ -24,11 +24,11 @@ def main():
     input_data_fp = config['filepaths']['input_data']
     output_data_fp= config['filepaths']['output_data']
     LFE_data_directory= config['filepaths']['LFE_data_directory']
-    polygon_fp = LFE_data_directory + "/2004001_2017258_catalogue.json" # Found at Zenodo link - too large for Github
+    polygon_fp = LFE_data_directory + "2004001_2017258_catalogue.json" # Found at Zenodo link - too large for Github
 
-    lfe_unet_data = "/lfe_detections_unet_2874.csv" #Processed using findDetectionPositions.py (Elizabeth's updated UNet output file)
-    lfe_training_data = "/lfe_detections_training.csv"
-    lfe_joined_list = "/LFEs_joined.csv" # Can be generated using LFE_statistics.py 
+    lfe_unet_data = "lfe_detections_unet_2874.csv" #Processed using findDetectionPositions.py (Elizabeth's updated UNet output file)
+    lfe_training_data = "lfe_detections_training.csv"
+    lfe_joined_list = "LFEs_joined.csv" # Can be generated using LFE_statistics.py 
     
     #dates you would like to plot visualisations for year-month-day
     data_str_start = '2004-01-01'
@@ -96,15 +96,15 @@ def main():
         config.read('config_LFE_stats.ini')
         LFE_data_directory= config['filepaths']['LFE_data_directory']
 
-        polygon_fp = LFE_data_directory + "/2004001_2017258_catalogue.json"
-        full_df = pd.read_csv(LFE_data_directory + "/lfe_detections_unet_2874.csv")
+        polygon_fp = LFE_data_directory + "2004001_2017258_catalogue.json"
+        full_df = pd.read_csv(LFE_data_directory + "lfe_detections_unet_2874.csv")
         full_df = full_df.loc[(full_df['start'] >= date_start) & (full_df['start'] <= date_end)]
         saved_polys = get_polygons(polygon_fp, data_start, data_end)
         poly_num = len(saved_polys)
         print('Uncalibrated, total polygons:', poly_num)
 
         # define number of JOINED LFEs given in 'joined....csv' file 
-        joint = pd.read_csv(LFE_data_directory + "/LFEs_joined.csv")
+        joint = pd.read_csv(LFE_data_directory + "LFEs_joined.csv")
         joint_min = joint.loc[(joint['start'] >= date_start) & (joint['start'] <= date_end)]
         joint_num = np.shape(joint_min)[0]
         print('Joined Polygons:', joint_num)
