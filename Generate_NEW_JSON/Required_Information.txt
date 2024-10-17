@@ -1,0 +1,4 @@
+* Before you generate the DST-corrected, joined .json file of polygon vertices make sure you have 
+downloaded all necessary spectral & trajectory data from directories labeled 
+"cassini_saturn_skr/SKR_spectrogram_data" and "cassini_saturn_skr/trajectory"
+    * You will find these large files on the DIAS Ariadne Server 
