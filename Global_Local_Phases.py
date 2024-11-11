@@ -98,12 +98,20 @@ for element in all:
 lfe_phase_no_nan = lfe_phases.iloc[no_nans].reset_index()
 
 # Calculate & PLOT Global Phases for each Joined LFE Event
+<<<<<<< Updated upstream
 def global_phase_figures(lfe_phase_no_nan, dusk_dawn_plots = False):
     if dusk_dawn_plots == True:
         # Create two subsets of the data - 1) LFEs seen from Dawn (02 - 10 hr LST), and 2) LFEs seen from Dusk (14 - 22 hr LST)
         LFE_df = lfe_phase_no_nan
         dawn_lfe, = np.where((LFE_df['subLST'] >= 2) & (LFE_df['subLST'] <= 10 ))
         dusk_lfe, = np.where((LFE_df['subLST'] >= 14) & (LFE_df['subLST'] <= 22))
+=======
+def global_phase_figures(lfe_phase_no_nan, blood_splatter = False):
+    # Create two subsets of the data - 1) LFEs seen from Dawn (02 - 10 hr LST), and 2) LFEs seen from Dusk (14 - 22 hr LST)
+    LFE_df = lfe_phase_no_nan
+    dawn_lfe, = np.where((LFE_df['subLST'] >= 3) & (LFE_df['subLST'] <= 9 ))
+    dusk_lfe, = np.where((LFE_df['subLST'] >= 15) & (LFE_df['subLST'] <= 21))
+>>>>>>> Stashed changes
 
         dawn_phase = lfe_phase_no_nan.iloc[dawn_lfe].reset_index()
         dusk_phase = lfe_phase_no_nan.iloc[dusk_lfe].reset_index()
@@ -119,7 +127,79 @@ def global_phase_figures(lfe_phase_no_nan, dusk_dawn_plots = False):
         dawn_phase['north_deg'] = north2
         dawn_phase['south_deg'] = south2
 
+<<<<<<< Updated upstream
         # Plot Dawn & Dusk Contours
+=======
+    if blood_splatter == True:
+        # DAWN Phases
+        fig, ax = plt.subplots(1, figsize = (14, 14))
+        ax.set_ylabel("North Phase ($^\circ$)", fontsize = 20)
+        ax.set_xlabel("South Phase ($^\circ$)", fontsize = 20)
+        ax.scatter(dawn_phase['south_deg'], dawn_phase['north_deg'], s= 5, color = 'red')
+
+        ax.axhline(90, linestyle = '--', color = 'black')
+        plt.axhline(180, linestyle = '--', color = 'black')
+        plt.axhline(270, linestyle = '--', color = 'black')
+        plt.axvline(90, linestyle = '--', color = 'black')
+        plt.axvline(180, linestyle = '--', color = 'black')
+        plt.axvline(270, linestyle = '--', color = 'black')
+        ax.tick_params(axis='both', which='major', pad=50, labelsize = 20)
+
+        positions =[(0,0), (180,0), (360,0), (270, 90), (0,180), (180,180), (360, 180), (90, 270), (0, 360), (180, 360), (360, 360)]
+        labels = ['South', 'Thin', 'South', 'In', 'Thick', 'North', 'Thick', 'Out', 'South', 'Thin', 'South']
+
+        for position, label in zip(positions, labels):
+            circle = Circle(position, 20, facecolor = 'none', edgecolor='blue', linewidth=3, alpha=1, clip_on = False)
+            ax.add_patch(circle)
+            ax.text(position[0], position[1], label, color = 'blue', fontsize = 20, va = 'center', ha = 'center', weight = 'bold')
+
+        plt.xlim(0, 361)
+        plt.xticks(np.arange(0, 361, 90))
+        plt.yticks(np.arange(0, 361, 90))
+        plt.ylim(0, 360)
+        plt.title(f"Dawn (03 - 09 hr LST) LFE Phase Distribution \n N = {np.shape(dawn_phase)[0]}", pad = 70, fontsize = 20)
+        #plt.savefig("/Users/hannamag/Desktop/LFE_statistics/figures/blue_red_distrib_lfes_short.jpeg", dpi = 300)
+        plt.show()
+
+        # Dusk Phases
+        fig, ax = plt.subplots(1, figsize = (14, 14))
+        ax.set_ylabel("North Phase ($^\circ$)", fontsize = 20)
+        ax.set_xlabel("South Phase ($^\circ$)", fontsize = 20)
+        ax.scatter(dusk_phase['south_deg'], dusk_phase['north_deg'], s= 5, color = 'red')
+
+        ax.axhline(90, linestyle = '--', color = 'black')
+        plt.axhline(180, linestyle = '--', color = 'black')
+        plt.axhline(270, linestyle = '--', color = 'black')
+        plt.axvline(90, linestyle = '--', color = 'black')
+        plt.axvline(180, linestyle = '--', color = 'black')
+        plt.axvline(270, linestyle = '--', color = 'black')
+        ax.tick_params(axis='both', which='major', pad=50, labelsize = 20)
+
+        positions =[(0,0), (180,0), (360,0), (270, 90), (0,180), (180,180), (360, 180), (90, 270), (0, 360), (180, 360), (360, 360)]
+        labels = ['South', 'Thin', 'South', 'In', 'Thick', 'North', 'Thick', 'Out', 'South', 'Thin', 'South']
+
+        for position, label in zip(positions, labels):
+            circle = Circle(position, 20, facecolor = 'none', edgecolor='blue', linewidth=3, alpha=1, clip_on = False)
+            ax.add_patch(circle)
+            ax.text(position[0], position[1], label, color = 'blue', fontsize = 20, va = 'center', ha = 'center', weight = 'bold')
+
+        #circle1 = Circle((0,0), 45, facecolor = 'none', edgecolor='blue', linewidth=3, alpha=1)
+        #circle2 = Circle((0,0), 45, facecolor = 'none', edgecolor='blue', linewidth=3, alpha=1)
+        #circle3 = Circle((0,0), 45, facecolor = 'none', edgecolor='blue', linewidth=3, alpha=1)
+        #circle1 = Circle((0,0), 45, facecolor = 'none', edgecolor='blue', linewidth=3, alpha=1)
+
+        #ax.add_patch(circle1)
+
+        plt.xlim(0, 361)
+        plt.xticks(np.arange(0, 361, 90))
+        plt.yticks(np.arange(0, 361, 90))
+        plt.ylim(0, 360)
+        plt.title(f"Dusk (15 - 21 hr LST) LFE Phase Distribution \n N = {np.shape(dusk_phase)[0]}", pad = 70, fontsize = 20)
+        #plt.savefig("/Users/hannamag/Desktop/LFE_statistics/figures/blue_red_distrib_lfes_short.jpeg", dpi = 300)
+        plt.show()
+
+    else: # Plot Dawn & Dusk Contours
+>>>>>>> Stashed changes
         # DUSK - CONTOURS
         dusk_phase['vals1'] = np.ones(np.shape(dusk_phase)[0])
         dusk_phase['north1'] = np.ones(np.shape(dusk_phase)[0])
@@ -447,5 +527,10 @@ def local_phase_figures(lfe_phase_no_nan, trajectories_df):
     plt.show()
 
 # Actual Code 
+<<<<<<< Updated upstream
 global_phase_figures(lfe_phase_no_nan, dusk_dawn_plots=False) # ----- EX. /Sample_Visualizations/Contours_Global_Joined_LFEs.jpeg
 local_phase_figures(lfe_phase_no_nan, trajectories_df=trajectories_df) # ----- EX. /Sample_Visualizations/Contours_Local_Joined_LFEs.jpeg
+=======
+global_phase_figures(lfe_phase_no_nan) # ----- EX. /Sample_Visualizations/Contours_Global_Joined_LFEs.jpeg
+local_phase_figures(lfe_phase_no_nan,trajectories_df=trajectories_df) # ----- EX. /Sample_Visualizations/Contours_Local_Joined_LFEs.jpeg
+>>>>>>> Stashed changes

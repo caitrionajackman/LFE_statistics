@@ -33,8 +33,13 @@ def main():
     #dates you would like to plot visualisations for year-month-day
     #data_start=pd.Timestamp('2004-07-24') #Badman figure 3 example
     #data_end=pd.Timestamp('2004-07-30')
-    data_start=pd.Timestamp('2012-09-07')
-    data_end=pd.Timestamp('2012-09-10')
+    
+    #data_start=pd.Timestamp('2012-09-07')
+    #data_end=pd.Timestamp('2012-09-10')
+    
+    data_start=pd.Timestamp('2004-02-21')
+    data_end=pd.Timestamp('2004-02-22')
+    
     
     #data_start=pd.Timestamp('2009-11-02')
     #data_end=pd.Timestamp('2009-11-10')
@@ -44,9 +49,11 @@ def main():
     print(data_start)
     
     if year == '2017':
-        file = input_data_fp + '/SKR_spectrogram_data/SKR_2017_001-258_CJ.sav'
+       # file = input_data_fp + '/SKR_spectrogram_data/SKR_2017_001-258_CJ.sav'
+        file = input_data_fp + '/SKR_2017_001-258_CJ.sav'        
     else: 
-        file = input_data_fp + '/SKR_spectrogram_data/SKR_{}_CJ.sav'.format(year)
+        #file = input_data_fp + '/SKR_spectrogram_data/SKR_{}_CJ.sav'.format(year)
+        file = input_data_fp + '/SKR_{}_CJ.sav'.format(year)
 
     saved_polys=None
 
@@ -56,11 +63,11 @@ def main():
         "two_spectrograms": False,
         "spectrogram_polygons": False,  #for this call Unet json file
         "B_time_series": False,
-        "joining_process_polygons": False, # SHOWS JOINING PROCESS. a) two separate polys, b) joined polys ----- EX. /Sample_Visualizations/Example_Joining_Process.png
+        "joining_process_polygons": True, # SHOWS JOINING PROCESS. a) two separate polys, b) joined polys ----- EX. /Sample_Visualizations/Example_Joining_Process.png
         "spectrogram_joint_polygons": True # Same as "two_spectograms" but now using JOINT .json file ----- EX. /Sample_Visualizations/Sample_Joined_Polygon.png
     }
 
-    unet=True
+    unet=False
     #Read in LFE list (output of Elizabeth's U-Net run on full Cassini dataset)
     print('Reading in the LFE list')
     #Unet True means the code uses the output of O'Dwyer Unet (4950 examples) 28/07/2023 - before post-processing
@@ -87,7 +94,9 @@ def main():
     
     if plot["spectrogram_intpower"]:    
        #read in data
-        fp = output_data_fp + '/trajectory/trajectory{}.csv'.format(year)
+        #fp = output_data_fp + '/trajectory/trajectory{}.csv'.format(year)
+        fp = output_data_fp + '/trajectory{}.csv'.format(year)
+        
         mag_df=pd.read_csv(fp,parse_dates=['datetime_ut'])
         intpwr_df=pd.read_csv(output_data_fp + '/intpwr/intpwr_withtraj{}.csv'.format(year), parse_dates=['datetime_ut'])
        #set parameters for plot
@@ -114,26 +123,6 @@ def main():
         #for i in range(len(LFE_df)):
         #    ax[0].hlines(y=1200,xmin=pd.Timestamp(LFE_df['start'][i]),xmax=pd.Timestamp(LFE_df['end'][i]),linewidth=4,color='dimgray')
 
-    #Offset horizontal bars for original Unet output                  
-      #  ax[0].hlines(y=1100,xmin=pd.Timestamp(2004,7,24,1,21),xmax=pd.Timestamp(2004,7,24,5,51),linewidth=4,color='skyblue')
-      #  ax[0].hlines(y=1100,xmin=pd.Timestamp(2004,7,24,7,51),xmax=pd.Timestamp(2004,7,24,16,51),linewidth=4,color='skyblue')
-        
-      #  ax[0].hlines(y=1200,xmin=pd.Timestamp(2004,7,24,21,12),xmax=pd.Timestamp(2004,7,25,3,21),linewidth=4,color='skyblue')
-      #  ax[0].hlines(y=1150,xmin=pd.Timestamp(2004,7,25,3,30),xmax=pd.Timestamp(2004,7,25,13,51),linewidth=4,color='skyblue')
-
-      #  ax[0].hlines(y=1100,xmin=pd.Timestamp(2004,7,25,17,39),xmax=pd.Timestamp(2004,7,28,2,12),linewidth=4,color='skyblue')
-      #  ax[0].hlines(y=1100,xmin=pd.Timestamp(2004,7,28,2,51),xmax=pd.Timestamp(2004,7,28,9,3),linewidth=4,color='skyblue')
-
-      #  ax[0].hlines(y=1200,xmin=pd.Timestamp(2004,7,28,10,6),xmax=pd.Timestamp(2004,7,28,20),linewidth=4,color='skyblue')
-      #  ax[0].hlines(y=1150,xmin=pd.Timestamp(2004,7,28,19,51),xmax=pd.Timestamp(2004,7,29,17,45),linewidth=4,color='skyblue')
-        
-        #horizontal bars for joined LFEs
-      #  ax[0].hlines(y=1000,xmin=pd.Timestamp(2004,7,24,1,21),xmax=pd.Timestamp(2004,7,24,5,51),linewidth=4,color='dimgray')
-      #  ax[0].hlines(y=1000,xmin=pd.Timestamp(2004,7,24,7,51),xmax=pd.Timestamp(2004,7,24,16,51),linewidth=4,color='dimgray')
-      #  ax[0].hlines(y=1000,xmin=pd.Timestamp(2004,7,24,21,12),xmax=pd.Timestamp(2004,7,25,13,51),linewidth=4,color='dimgray')
-      #  ax[0].hlines(y=1000,xmin=pd.Timestamp(2004,7,25,17,39),xmax=pd.Timestamp(2004,7,28,2,12),linewidth=4,color='dimgray')
-      #  ax[0].hlines(y=1000,xmin=pd.Timestamp(2004,7,28,2,51),xmax=pd.Timestamp(2004,7,28,9,3),linewidth=4,color='dimgray')
-      #  ax[0].hlines(y=1000,xmin=pd.Timestamp(2004,7,28,10,6),xmax=pd.Timestamp(2004,7,29,17,45),linewidth=4,color='dimgray')
        
         #Plot 3 integrated power bands
         ax[1]=plot_int_power(ax[1], intpwr_df, data_start, data_end, 'orange', '100-600', csize=fontsize)
@@ -246,63 +235,38 @@ def main():
 
     if plot["two_spectrograms"]:    
        #read in data
-        fp = output_data_fp + '/trajectory/trajectory{}.csv'.format(year)
-        mag_df=pd.read_csv(fp,parse_dates=['datetime_ut'])
-        intpwr_df=pd.read_csv(output_data_fp + '/intpwr/intpwr_withtraj{}.csv'.format(year), parse_dates=['datetime_ut'])
+       # fp = output_data_fp + '/trajectory/trajectory{}.csv'.format(year)
+       fp = output_data_fp + '/trajectory{}.csv'.format(year)
+       
+       mag_df=pd.read_csv(fp,parse_dates=['datetime_ut'])
+       # intpwr_df=pd.read_csv(output_data_fp + '/intpwr/intpwr_withtraj{}.csv'.format(year), parse_dates=['datetime_ut'])
+       intpwr_df=pd.read_csv(output_data_fp + '/intpwr_withtraj{}.csv'.format(year), parse_dates=['datetime_ut'])
        #set parameters for plot
-        num_panels=2
-        fontsize=18
-        fig_height = 16
-        fig_width = 24
+       num_panels=2
+       fontsize=18
+       fig_height = 16
+       fig_width = 24
        #define figure
-        plt.ioff()
-        fig,ax = plt.subplots(num_panels,1,figsize=(fig_width, fig_height))
+       plt.ioff()
+       fig,ax = plt.subplots(num_panels,1,figsize=(fig_width, fig_height))
        #set width and height space between subplots
-        fig.subplots_adjust(wspace=0.1,hspace=0.1)
+       fig.subplots_adjust(wspace=0.1,hspace=0.1)
        #plot flux
-        saved_polys=None
-        ax[0]=plot_flux(ax[0], data_start, data_end, file,colour_in=None, fontsize=fontsize)
+       saved_polys=None
+       ax[0]=plot_flux(ax[0], data_start, data_end, file,colour_in=None, fontsize=fontsize)
 
 
-        polygon_fp=LFE_data_directory + "/2004001_2017258_catalogue.json"
-        print("do we read polygon file path correctly?")
-        print(polygon_fp)
-        saved_polys = get_polygons(polygon_fp,data_start, data_end)
+       polygon_fp=LFE_data_directory + "/2004001_2017258_catalogue.json"
+       #print("do we read polygon file path correctly?")
+       #print(polygon_fp)
+       saved_polys = get_polygons(polygon_fp,data_start, data_end)
        # breakpoint()
 
-        ax[1]=plot_flux(ax[1], data_start, data_end, file, colour_in=saved_polys,fontsize=fontsize)
+       ax[1]=plot_flux(ax[1], data_start, data_end, file, colour_in=saved_polys,fontsize=fontsize)
           
-        #plot_pol(ax,time_view_start, time_view_end, file,colour_in=None,frequency_lines=None):          
-        #plot_pol(ax[1],data_starttime_view_starttime_view_start, time_view_end, file,colour_in=None,frequency_lines=None):          
-        #ax[1]=plot_pol(ax[1],data_start,data_end,file,colour_in=None,frequency_lines=None)
-            
-        
-#Uncomment this for plotting polygons from .json file
-
-     #   from tfcat.codec import load
-
-     #   with open(polygon_fp, 'r') as f:
-     #       tfcat_data = load(f)
-     #       breakpoint()
-       # catalogue1=cls(tfcat_data, file_uri=polygon_fp)
-        
- 
-#Uncomment this not to plot polygons
-  #  saved_polys=None
-
-#I don't see how these are connected... surely need to retrieve the polygons from the json file and then overplot them on the spectrogram?
-
-    #For plotting polygons onto spectrogram.
-        #if colour_in is not None:
-        #    for shape in colour_in:
-        #        shape_=shape.copy()
-        #        shape_[:,0]=[mdates.date2num(datetime.fromtimestamp(i)) for i in shape_[:,0]]
-        #        ax.add_patch(Polygon(shape_, color=(0.163625, 0.471133, 0.558148), linestyle='dashed',linewidth=4, alpha=1, fill=False))
-
-    
-        plt.tight_layout()
-        plt.show()
-        plt.close()
+       plt.tight_layout()
+       plt.show()
+       plt.close()
         
     # If I want to visualize polygons across years, must run loop for YEARLY increments 
     if plot['joining_process_polygons']:
@@ -363,10 +327,23 @@ def main():
                 #set width and height space between subplots
                 fig.subplots_adjust(wspace=0.1,hspace=0.1)
 
+                data_start_original=data_start
+                data_end_original=data_end
+                
                 # Initialize Polygons
                 polygon_fp= LFE_data_directory + "2004001_2017258_catalogue.json"
                 data_start=pd.Timestamp(f'{newstarts[ind]}') 
                 data_end=pd.Timestamp(f'{newends[ind]}')
+                
+                print('Data start (automatically calculated) is')
+                print(data_start)
+                print('Data end (automatically calculated) is')
+                print(data_end)
+                
+                #data_start=pd.Timestamp('2004-02-21')
+                #data_end=pd.Timestamp('2004-02-22')
+               
+                
                 print('2 polygons are within:', data_start, 'and ', data_end)
 
                 saved_polys = get_polygons(polygon_fp, data_start, data_end)
@@ -443,8 +420,9 @@ def main():
                 #print('lengths:', delete_polys_len0, delete_polys_len1)
     
                 # FIRST PLOT - separate polygons with QUANTILE LINES
-                ax0=plot_flux2(ax0, data_start, data_end, file, colour_in=saved_polys, fontsize=fontsize)
-            
+            #    ax0=plot_flux2(ax0, data_start, data_end, file, colour_in=saved_polys, fontsize=fontsize)
+                ax0=plot_flux2(ax0, data_start_original, data_end_original, file, colour_in=saved_polys, fontsize=fontsize)
+        
                 
                 #colors_labels = ['red', 'orange', 'yellow', 'green', 'purple']
                 colors_labels = ["#e3d66c",
@@ -501,8 +479,8 @@ def main():
 
                 #ax0.set_xlim([datetime.fromtimestamp(tup[0][0]), datetime.fromtimestamp(tlow[0][1])])
                 ax0.legend(loc = 'lower left', prop={'size': 8})
-                ax0.set_xlim([mdates.date2num(pd.Timestamp(newstarts[ind])), mdates.date2num(pd.Timestamp(newends[ind]))])
-                
+                #ax0.set_xlim([mdates.date2num(pd.Timestamp(newstarts[ind])), mdates.date2num(pd.Timestamp(newends[ind]))])
+                ax0.set_xlim([mdates.date2num(pd.Timestamp(data_start_original)), mdates.date2num(pd.Timestamp(data_end_original))])
                 # REDefine quantiles / paths PER FIGURE
                 quantiles00 = np.array([0.75, 0.8, 0.85, 0.9, 0.95])
 
@@ -546,17 +524,20 @@ def main():
                 lol = [lol]
                 
                 # PLOT
-                ax1 = plot_flux2(ax1, data_start, data_end, file, colour_in = lol, fontsize=fontsize)
-        
+                #ax1 = plot_flux2(ax1, data_start, data_end, file, colour_in = lol, fontsize=fontsize)
+                ax1 = plot_flux2(ax1, data_start_original, data_end_original, file, colour_in = lol, fontsize=fontsize)
+
                 # Print plots
                 fig.tight_layout()
                 plt.show()
         
     if plot["spectrogram_joint_polygons"]:
         #read in data
-        fp = output_data_fp + '/trajectory/trajectory{}.csv'.format(year)
+       # fp = output_data_fp + '/trajectory/trajectory{}.csv'.format(year)
+        fp = output_data_fp + '/trajectory{}.csv'.format(year)
         mag_df=pd.read_csv(fp,parse_dates=['datetime_ut'])
-        intpwr_df=pd.read_csv(output_data_fp + '/intpwr/intpwr_withtraj{}.csv'.format(year), parse_dates=['datetime_ut'])
+        #intpwr_df=pd.read_csv(output_data_fp + '/intpwr/intpwr_withtraj{}.csv'.format(year), parse_dates=['datetime_ut'])
+        intpwr_df=pd.read_csv(output_data_fp + '/intpwr_withtraj{}.csv'.format(year), parse_dates=['datetime_ut'])
        #set parameters for plot
 
         num_panels=2
@@ -614,16 +595,16 @@ def main():
 
 #'''____This was adapted from original code for the space labelling tool!!!___'''
 def get_polygons(polygon_fp,start, end):
-    print("are we getting here and finding polygons?")        
+    #print("are we getting here and finding polygons?")        
     unix_start=t.mktime(start.utctimetuple())
     unix_end=t.mktime(end.utctimetuple())
     #array of polygons found within time interval specified.
     polygon_array=[]
     if path.exists(polygon_fp):
-        print(" a path exists ")
+        #print(" a path exists ")
         catalogue = TFCat.from_file(polygon_fp)
         #breakpoint()
-        print(" a catalogue exists ")
+        #print(" a catalogue exists ")
         #for i in range(len(catalogue)):
         for i in range(len(catalogue._data["features"])):
             time_points=np.array(catalogue._data["features"][i]['geometry']['coordinates'][0])[:,0]

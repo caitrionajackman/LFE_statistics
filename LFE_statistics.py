@@ -151,7 +151,7 @@ def main():
     if plot["check_PPOs"]:
         PPOphasecheck(data_directory + ppo_file, data_directory)
 
-    bin_width_PPO=15
+    bin_width_PPO=45
     if plot["ppo_plot"]:
         PlotPPO(data_directory + LFE_phase_df, bin_width_PPO, LFE_df, long_lfe_cutoff=lfe_duration_split, local=False)
         #PlotPPO(data_directory + LFE_phase_df, 15, LFE_df, long_lfe_cutoff=lfe_duration_split, local=False)
@@ -235,11 +235,36 @@ def LFE_joiner(data_directory,LFE_df,LFE_secs,unet=True):
 def PlotPPO(file_path, bin_width, LFE_df, long_lfe_cutoff, unet=True, local=False):
 
     bins=np.arange(0, 360+bin_width, bin_width)
+    #bins=np.arange(-1*(bin_width/2), 360-(bin_width/2.), bin_width)
     data = pd.read_csv(file_path)
 
     #TODO: Check with Gabs - is this how to start treatment of PPOs at start?
     north = np.array(data["north phase"]) % 360
     south = np.array(data["south phase"]) % 360
+
+###***********************************************************######
+###***********************************************************######
+###***********************************************************######
+
+#Make a plot like Fig 2 in Jackman 2016 of N vs S to see clustering of phases
+
+    all_LFEs = np.where(LFE_df["duration"] > 0)
+    fig=plt.figure()
+    ax=fig.add_subplot(1,1,1)
+    ax.plt(south,north)
+    ax.set_title('Scatterplot of LFEs as function of global phase')
+    ax.set_xlabel("South Phase ($^\circ$)")
+    ax.set_ylabel("North Phase ($^\circ$)")
+    plt.tight_layout()
+    plt.show()
+
+
+###***********************************************************######
+###***********************************************************######
+###***********************************************************######
+
+
+
 
     #differentiate between local phases and "global" phases - and both require similar data
     if local is True:
@@ -279,6 +304,57 @@ def PlotPPO(file_path, bin_width, LFE_df, long_lfe_cutoff, unet=True, local=Fals
     #print(long_LFEs.size)
 
 
+    all_LFEs, = np.where(LFE_df["duration"] > 0)
+    #Make a plot of histogram of global phases WITHOUT split into short and long
+    fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+    ax_north, ax_south = axes
+
+    n_north,bin_edges=np.histogram([north[i] for i in all_LFEs], bins=bins)
+    ax_north.plot(bins[:-1]+bin_width/2.,(n_north/all_LFEs.size)*100.,linewidth=6)
+
+    n_north_short,bin_edges=np.histogram([north[i] for i in short_LFEs], bins=bins)
+    ax_north.plot(bins[:-1]+bin_width/2.,(n_north_short/short_LFEs.size)*100.,color="indianred",linewidth=6)
+
+    n_north_long,bin_edges=np.histogram([north[i] for i in long_LFEs], bins=bins)
+    ax_north.plot(bins[:-1]+bin_width/2.,(n_north_long/long_LFEs.size)*100.,color="mediumturquoise",linewidth=6)
+
+    n_south,bin_edges=np.histogram([south[i] for i in all_LFEs], bins=bins)
+    ax_south.plot(bins[:-1]+bin_width/2.,(n_south/all_LFEs.size)*100.,linewidth=6)
+
+    n_south_short,bin_edges=np.histogram([south[i] for i in short_LFEs], bins=bins)
+    ax_south.plot(bins[:-1]+bin_width/2.,(n_south_short/short_LFEs.size)*100.,color="indianred",linewidth=6)
+
+    n_south_long,bin_edges=np.histogram([south[i] for i in long_LFEs], bins=bins)
+    ax_south.plot(bins[:-1]+bin_width/2.,(n_south_long/long_LFEs.size)*100.,color="mediumturquoise",linewidth=6)
+
+    ax_north.set_title("North Phase")     
+    ax_south.set_title("South Phase")
+    ax_north.set_ylim(bottom=0)
+    ax_south.set_ylim(bottom=0)
+    ax_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
+
+    titleTag = "Global"
+    for ax in fig.get_axes():
+        ax.set_ylabel("# of LFEs")
+        ax.set_xlabel("Phase ($^\circ$)")
+        ax.margins(x=0)
+        ax.set_xticks(bins[0::2])
+
+    if unet:
+        dataTag="UNET Output: Joined"
+    else:
+        datTag="Training Data"
+        
+    fig.suptitle(f"Northern and Southern {titleTag} Phases ({dataTag})")
+
+    plt.tight_layout()
+    plt.show()
+
+    #breakpoint()
+ 
+    
+    
+
     if local is False:
         fig, axes = plt.subplots(2, 1, figsize=(8, 8))
         ax_north, ax_south = axes
@@ -303,7 +379,7 @@ def PlotPPO(file_path, bin_width, LFE_df, long_lfe_cutoff, unet=True, local=Fals
         ax_south.set_ylim(bottom=0)
         ax_south.legend(bbox_to_anchor=(0.5, -0.5), loc="center", ncol=2)
 
-        titleTag = "PPO"
+        titleTag = "Global"
 
     else:
         fig, axes = plt.subplots(2, 1, figsize=(8, 8))
@@ -342,7 +418,7 @@ def PlotPPO(file_path, bin_width, LFE_df, long_lfe_cutoff, unet=True, local=Fals
         ax.set_xticks(bins[0::2])
 
     if unet:
-        dataTag="UNET Output"
+        dataTag="UNET Output: Joined"
     else:
         datTag="Training Data"
         
@@ -351,7 +427,7 @@ def PlotPPO(file_path, bin_width, LFE_df, long_lfe_cutoff, unet=True, local=Fals
     plt.tight_layout()
     plt.show()
 
-
+    #breakpoint()
 
     #Now split by hemisphere
     #calculation of LFE range, latitude, local time
@@ -436,6 +512,8 @@ def PlotPPO(file_path, bin_width, LFE_df, long_lfe_cutoff, unet=True, local=Fals
 
     plt.tight_layout()
     plt.show()
+    
+    
 
 
 
@@ -525,8 +603,43 @@ def SavePPO(file_path, LFE_df, data_directory, file_name):
         lfe_north_phase_indices.append(north_index)
 
 
-    LFE_df["south phase"] = np.array(south_phase)[lfe_south_phase_indices]
-    LFE_df["north phase"] = np.array(north_phase)[lfe_north_phase_indices]
+    LFE_df["global south phase"] = np.array(south_phase)[lfe_south_phase_indices]
+    LFE_df["global north phase"] = np.array(north_phase)[lfe_north_phase_indices]
+    
+#    #Now do some calculations of the local phase to add to the csv file
+#    north = np.array(data["global north phase"]) % 360
+#    south = np.array(data["global south phase"]) % 360
+
+#     #differentiate between local phases and "global" phases - and both require similar data
+#    x = LFE_df["x_ksm"]
+#    y = LFE_df["y_ksm"]
+#    z = LFE_df["z_ksm"]
+
+#    spacecraft_r, spacecraft_theta, spacecraft_z = CartesiansToCylindrical(x, y, z)
+
+#    # Calculate local time
+#    spacecraft_lt = []
+#    for longitude_rads in spacecraft_theta:
+#        longitude_degs = longitude_rads*180/np.pi
+#        spacecraft_lt.append(((longitude_degs+180)*24/360) % 24)
+
+ #   azimuth = []
+ #   for lt in spacecraft_lt:
+  #      azimuth.append(((lt-12) * 15 + 720) % 360)
+
+
+   # local_phase_north = []
+    #local_phase_south = []
+    #for north_phase, south_phase, az in zip(north, south, azimuth):
+    #    local_phase_north.append(((north_phase - az) + 720) % 360)
+    #    local_phase_south.append(((south_phase - az) + 720) % 360)
+
+#    local_phase_north = np.array(local_phase_north)
+#    local_phase_south = np.array(local_phase_south)
+
+
+
+
 
     print(f"Saving new csv file to {data_directory+file_name}")
     LFE_df.to_csv(data_directory + file_name)
@@ -539,12 +652,12 @@ def PlotDurationHistogram(LFE_secs):
     #print(LFE_secs)
 
     #if unet:
-    ax.set_title('Histogram of duration of LFEs across Cassini mission (Joined List)')
+    ax.set_title('Histogram of LFE duration (Joined List)')
     #else:
     #    ax.set_title('Histogram of duration of LFEs across Cassini mission (UNET false)')
 
-    ax.set_xlabel('LFE duration (hours)')
-    ax.set_ylabel('# of LFEs')
+    ax.set_xlabel('LFE duration (hours)',fontsize=20)
+    ax.set_ylabel('# of LFEs',fontsize=20)
     ax.set_xscale('log')
     ax.set_yscale('log')
 
@@ -584,19 +697,15 @@ def Delta_t_LFEs(LFE_df, LFE_secs, LFE_duration, unet=True):
     #, label=f"N = {len(time_diff_minutes)}" #bins are 10 minutes wide
    # ax.hist(np.array(LFE_secs)/(60.*60.),bins=np.linspace(0,250,126), label=f"N = {len(LFE_secs)}")
    
-    print("bins","patches","n")
-    print(bins[0],n[0])#how to find the indices of where these deltat<10 minutes are?
-    #fart=df.where(df.time_diff_minutes<10)  #np.where doesn't work either???
-    #print(fart)
-    #print(bins[1],n[1])
-    #print(bins[2],n[2])
+    #print("bins","patches","n")
+    #print(bins[0],n[0])#how to find the indices of where these deltat<10 minutes are?
     if unet:
-        ax.set_title('Histogram of LFE deltaT across Cassini mission (UNet Output)')
+        ax.set_title(r'Histogram of LFE $\Delta$T (ODwyer et al., 2023 list)')
     else:
         ax.set_title('Histogram of LFE deltaT across Cassini mission (Training Data)')
 
-    ax.set_xlabel('LFE time difference (minutes)')
-    ax.set_ylabel('# of LFEs')
+    ax.set_xlabel('$\Delta$T between successive LFEs (minutes)',fontsize=20)
+    ax.set_ylabel('# of LFEs',fontsize=20)
     ax.set_xlim([0,300])
 
     median = np.median(np.array(time_diff_minutes))    #values from sec to hours

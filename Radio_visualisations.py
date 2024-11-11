@@ -46,8 +46,15 @@ def main():
     #dates you would like to plot visualisations for year-month-day
     #data_start=pd.Timestamp('2004-07-24') #Badman figure 3 example
     #data_end=pd.Timestamp('2004-07-30')
-    data_start=pd.Timestamp('2006-02-03')
-    data_end=pd.Timestamp('2006-02-10')
+    #data_start=pd.Timestamp('2006-02-03')
+    #data_end=pd.Timestamp('2006-02-10')
+
+    #data_start=pd.Timestamp('2015-08-03')
+    #data_end=pd.Timestamp('2015-08-20')
+    
+    data_start=pd.Timestamp('2004-09-12')
+    data_end=pd.Timestamp('2004-09-13')
+    
     
     #data_start=pd.Timestamp('2009-11-02')
     #data_end=pd.Timestamp('2009-11-10')
