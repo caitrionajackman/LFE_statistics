@@ -109,73 +109,44 @@ def global_phase_figures(lfe_phase_no_nan, dusk_dawn_plots = False):
         dusk_phase = lfe_phase_no_nan.iloc[dusk_lfe].reset_index()
 
         # Generate GLOBAL Degree measurements 
-        north1 = np.array(dusk_phase["north phase"]) % 360
-        south1 = np.array(dusk_phase["south phase"]) % 360
-        north2 = np.array(dawn_phase["north phase"]) % 360
-        south2 = np.array(dawn_phase["south phase"]) % 360
+        north = np.array(dusk_phase["north phase"]) % 360
+        south = np.array(dusk_phase["south phase"]) % 360
 
-        dusk_phase['north_deg'] = north1
-        dusk_phase['south_deg'] = south1
-        dawn_phase['north_deg'] = north2
-        dawn_phase['south_deg'] = south2
+        dusk_phase['north_deg'] = north
+        dusk_phase['south_deg'] = south
 
         # Plot Dawn & Dusk Contours
         # DUSK - CONTOURS
-        dusk_phase['vals1'] = np.ones(np.shape(dusk_phase)[0])
-        dusk_phase['north1'] = np.ones(np.shape(dusk_phase)[0])
-        dusk_phase['south1'] = np.ones(np.shape(dusk_phase)[0])
-        dusk_phase['vals2'] = np.ones(np.shape(dusk_phase)[0])
-        dusk_phase['north2'] = np.ones(np.shape(dusk_phase)[0])
-        dusk_phase['south2'] = np.ones(np.shape(dusk_phase)[0])
+        dusk_phase['vals'] = np.ones(np.shape(dusk_phase)[0])
+        dusk_phase['north'] = np.ones(np.shape(dusk_phase)[0])
+        dusk_phase['south'] = np.ones(np.shape(dusk_phase)[0])
 
-        # Assign grid values
-        x1 = np.arange(-30, 390, 30) # Colorful Contours
-        y1 = np.arange(-30, 390, 30)
-        
-        x2 = np.arange(0, 360, 30) # Black/White Filled Contours
-        y2 =np.arange(0, 360, 30) #360
+        # Assign grid values -- For both Colorful & Black/White Filled Contours
+        x1 = np.arange(0, 360, 30) 
+        y1 =np.arange(0, 360, 30) 
 
         for i in range(np.shape(dusk_phase)[0]):
-            dusk_phase['north1'].iloc[i] = x1[np.where(dusk_phase['north_deg'].iloc[i] - x1 >= 0)[0][-1]]
-            dusk_phase['south1'].iloc[i] = x1[np.where(dusk_phase['south_deg'].iloc[i] - x1 >= 0)[0][-1]]
-            dusk_phase['north2'].iloc[i] = x2[np.where(dusk_phase['north_deg'].iloc[i] - x2 >= 0)[0][-1]]
-            dusk_phase['south2'].iloc[i] = x2[np.where(dusk_phase['south_deg'].iloc[i] - x2 >= 0)[0][-1]]
+            dusk_phase['north'].iloc[i] = x1[np.where(dusk_phase['north_deg'].iloc[i] - x1 >= 0)[0][-1]]
+            dusk_phase['south'].iloc[i] = x1[np.where(dusk_phase['south_deg'].iloc[i] - x1 >= 0)[0][-1]]
 
-        Z1 = pd.pivot_table(dusk_phase, index = 'north1', columns = 'south1', values = 'vals1', aggfunc = sum, fill_value = 0)
-        Z2 = pd.pivot_table(dusk_phase, index = 'north2', columns = 'south2', values = 'vals2', aggfunc = sum, fill_value = 0)
+        Z = pd.pivot_table(dusk_phase, index = 'north', columns = 'south', values = 'vals', aggfunc = sum, fill_value = 0)
 
-        X1, Y1 = np.meshgrid(x1,y1)
-        X2, Y2 = np.meshgrid(x2,y2)
-        Z1.insert(12, '360.0', np.zeros(12))
-        Z1.insert(0, '-30.0', np.zeros(12))
+        # Periodic phase wrap at edges of contour plot implemented
+        x1_plot = np.arange(-360, 720, 30)
+        y1_plot = np.arange(-360, 720, 30)
+        X, Y = np.meshgrid(x1_plot, y1_plot)
 
-        # New row with different column values
-        new_row = {Z1.columns[0]: 0, Z1.columns[1]: 0 , Z1.columns[2]: 0, Z1.columns[3]: 0, Z1.columns[4]: 0, Z1.columns[5]: 0 , 
-                Z1.columns[6]: 0, Z1.columns[7]: 0, Z1.columns[8]: 0, Z1.columns[9]: 0 , Z1.columns[10]: 0, Z1.columns[11]: 0, Z1.columns[12]: 0, Z1.columns[13]: 0}
-
-        # Convert the new row to a DataFrame
-        new_row_df = pd.DataFrame([new_row])
-
-        # Append the new row to the DataFrame
-        df = pd.concat([Z1, new_row_df])  
-        df = pd.concat([df, new_row_df])              
-        index_list = df.index.tolist()
-        index_list[-1] = 360
-        index_list[-2] = -30
-
-        df.index = index_list
-        df = df.sort_index()
-        Z1 = df
-        
         # 2d histogram - both contours are [0,15, ..., 345]
         fig, ax = plt.subplots(figsize=(10,10))
         ax.set_ylabel("North Phase ($^\circ$)", fontsize = 20)
         ax.set_xlabel("South Phase ($^\circ$)", fontsize = 20)
         ax.set_title(f"Dusk (14 - 22 hr LST) LFE Phase Distribution \n  N = {np.shape(dusk_phase)[0]} - Peak at 150-180˚ S and 330-360˚ N", fontsize = 20)
 
-        plot1 = ax.contour(X1+15, Y1+15, Z1, levels = 15, cmap = 'spring_r')
-        Z_rev = np.matrix(Z2)[::-1]
-        plot2 = ax.imshow(Z_rev, cmap='Greys_r', extent=[0, 360, 0, 360]) 
+        Z_rev = np.matrix(Z)[::1]
+        Z_rev_plot = np.tile(Z_rev, [3,3])
+
+        plot1 = ax.contour(X + 15, Y + 15, Z_rev_plot, cmap = 'spring_r')
+        plot2 = ax.imshow(Z_rev, cmap='Greys_r', extent=[0, 360, 0, 360], origin = 'lower') 
 
         ax.set_xticks(np.arange(0, 360, 30))
         ax.set_xticklabels(np.arange(0, 360, 30), rotation = 90)
@@ -195,50 +166,18 @@ def global_phase_figures(lfe_phase_no_nan, dusk_dawn_plots = False):
         plt.show()
 
         # DAWN - CONTOURS
-        dawn_phase['vals1'] = np.ones(np.shape(dawn_phase)[0])
-        dawn_phase['north1'] = np.ones(np.shape(dawn_phase)[0])
-        dawn_phase['south1'] = np.ones(np.shape(dawn_phase)[0])
-        dawn_phase['vals2'] = np.ones(np.shape(dawn_phase)[0])
-        dawn_phase['north2'] = np.ones(np.shape(dawn_phase)[0])
-        dawn_phase['south2'] = np.ones(np.shape(dawn_phase)[0])
-
-        x1 = np.arange(-30, 390, 30) # Colorful Contours
-        y1 = np.arange(-30, 390, 30)
+        dawn_phase['vals'] = np.ones(np.shape(dawn_phase)[0])
+        dawn_phase['north'] = np.ones(np.shape(dawn_phase)[0])
+        dawn_phase['south'] = np.ones(np.shape(dawn_phase)[0])
         
-        x2 = np.arange(0, 360, 30) # Black/White Filled Contours
-        y2 =np.arange(0, 360, 30) #360
+        x1 = np.arange(0, 360, 30) 
+        y1 =np.arange(0, 360, 30) 
 
         for i in range(np.shape(dawn_phase)[0]):
-            dawn_phase['north1'].iloc[i] = x1[np.where(dawn_phase['north_deg'].iloc[i] - x1 >= 0)[0][-1]]
-            dawn_phase['south1'].iloc[i] = x1[np.where(dawn_phase['south_deg'].iloc[i] - x1 >= 0)[0][-1]]
-            dawn_phase['north2'].iloc[i] = x2[np.where(dawn_phase['north_deg'].iloc[i] - x2 >= 0)[0][-1]]
-            dawn_phase['south2'].iloc[i] = x2[np.where(dawn_phase['south_deg'].iloc[i] - x2 >= 0)[0][-1]]
-        
-        Z3 = pd.pivot_table(dawn_phase, index = 'north1', columns = 'south1', values = 'vals1', aggfunc = sum, fill_value = 0)
-        Z4 = pd.pivot_table(dawn_phase, index = 'north2', columns = 'south2', values = 'vals2', aggfunc = sum, fill_value = 0)
+            dawn_phase['north'].iloc[i] = x1[np.where(dawn_phase['north_deg'].iloc[i] - x1 >= 0)[0][-1]]
+            dawn_phase['south'].iloc[i] = x1[np.where(dawn_phase['south_deg'].iloc[i] - x1 >= 0)[0][-1]]
 
-        X1, Y1 = np.meshgrid(x1,y1)
-        X2, Y2 = np.meshgrid(x2,y2)
-        Z3.insert(12, '360.0', np.zeros(12))
-        Z3.insert(0, '-30.0', np.zeros(12))
-
-        # New row with different column values
-        new_row = {Z3.columns[0]: 0, Z3.columns[1]: 0 , Z3.columns[2]: 0, Z3.columns[3]: 0, Z3.columns[4]: 0, Z3.columns[5]: 0 , 
-                Z3.columns[6]: 0, Z3.columns[7]: 0, Z3.columns[8]: 0, Z3.columns[9]: 0 , Z3.columns[10]: 0, Z3.columns[11]: 0, Z3.columns[12]: 0, Z3.columns[13]: 0}
-
-        # Convert the new row to a DataFrame
-        new_row_df = pd.DataFrame([new_row])
-
-        # Append the new row to the DataFrame
-        df = pd.concat([Z3, new_row_df])  
-        df = pd.concat([df, new_row_df])              
-        index_list = df.index.tolist()
-        index_list[-1] = 360
-        index_list[-2] = -30
-
-        df.index = index_list
-        df = df.sort_index()
-        Z3 = df
+        Z1 = pd.pivot_table(dawn_phase, index = 'north', columns = 'south', values = 'vals', aggfunc = sum, fill_value = 0)
     
         # 2d histogram - both contours are [0,15, ..., 345]
         fig, ax = plt.subplots(figsize=(10,10))
@@ -246,9 +185,11 @@ def global_phase_figures(lfe_phase_no_nan, dusk_dawn_plots = False):
         ax.set_xlabel("South Phase ($^\circ$)", fontsize = 20)
         ax.set_title(f"Dawn (02 - 10 hr LST) LFE Phase Distribution \n N = {np.shape(dawn_phase)[0]} - Peak at 120-150˚ S and 300-330˚ N", fontsize = 20)
 
-        plot1 = ax.contour(X1+15, Y1+15, Z3, levels = 15, cmap = 'spring_r')
-        Z_rev = np.matrix(Z4)[::-1]
-        plot2 = ax.imshow(Z_rev, cmap='Greys_r', extent=[0, 360, 0, 360]) 
+        Z_rev = np.matrix(Z1)[::1]
+        Z_rev_plot = np.tile(Z_rev, [3,3])
+
+        plot1 = ax.contour(X+15, Y+15, Z_rev_plot, levels = 15, cmap = 'spring_r')
+        plot2 = ax.imshow(Z_rev, cmap='Greys_r', extent=[0, 360, 0, 360], origin = 'lower') 
 
         ax.set_xticks(np.arange(0, 360, 30))
         ax.set_xticklabels(np.arange(0, 360, 30), rotation = 90)
@@ -276,50 +217,23 @@ def global_phase_figures(lfe_phase_no_nan, dusk_dawn_plots = False):
 
         joint_phases_wout_nan = lfe_phase_no_nan # Variable name change
 
-        joint_phases_wout_nan['vals1'] = np.ones(np.shape(joint_phases_wout_nan)[0])
-        joint_phases_wout_nan['north1'] = np.ones(np.shape(joint_phases_wout_nan)[0])
-        joint_phases_wout_nan['south1'] = np.ones(np.shape(joint_phases_wout_nan)[0])
-        joint_phases_wout_nan['vals2'] = np.ones(np.shape(joint_phases_wout_nan)[0])
-        joint_phases_wout_nan['north2'] = np.ones(np.shape(joint_phases_wout_nan)[0])
-        joint_phases_wout_nan['south2'] = np.ones(np.shape(joint_phases_wout_nan)[0])
-
-        x1 = np.arange(-30, 390, 30) # Colorful Contours
-        y1 = np.arange(-30, 390, 30)
+        joint_phases_wout_nan['vals'] = np.ones(np.shape(joint_phases_wout_nan)[0])
+        joint_phases_wout_nan['north'] = np.ones(np.shape(joint_phases_wout_nan)[0])
+        joint_phases_wout_nan['south'] = np.ones(np.shape(joint_phases_wout_nan)[0])
         
-        x2 = np.arange(0, 360, 30) # Black/White Filled Contours
-        y2 =np.arange(0, 360, 30) #360
+        x1 = np.arange(0, 360, 30) # Black/White Contours
+        y1 =np.arange(0, 360, 30) 
 
         for i in range(np.shape(joint_phases_wout_nan)[0]):
-            joint_phases_wout_nan['north1'].iloc[i] = x1[np.where(joint_phases_wout_nan['north_deg'].iloc[i] - x1 >= 0)[0][-1]]
-            joint_phases_wout_nan['south1'].iloc[i] = x1[np.where(joint_phases_wout_nan['south_deg'].iloc[i] - x1 >= 0)[0][-1]]
-            joint_phases_wout_nan['north2'].iloc[i] = x2[np.where(joint_phases_wout_nan['north_deg'].iloc[i] - x2 >= 0)[0][-1]]
-            joint_phases_wout_nan['south2'].iloc[i] = x2[np.where(joint_phases_wout_nan['south_deg'].iloc[i] - x2 >= 0)[0][-1]]
+            joint_phases_wout_nan['north'].iloc[i] = x1[np.where(joint_phases_wout_nan['north_deg'].iloc[i] - x1 >= 0)[0][-1]]
+            joint_phases_wout_nan['south'].iloc[i] = x1[np.where(joint_phases_wout_nan['south_deg'].iloc[i] - x1 >= 0)[0][-1]]
 
-        Z1 = pd.pivot_table(joint_phases_wout_nan, index = 'north1', columns = 'south1', values = 'vals1', aggfunc = sum)
-        Z2 = pd.pivot_table(joint_phases_wout_nan, index = 'north2', columns = 'south2', values = 'vals2', aggfunc = sum)
-
-        X1, Y1 = np.meshgrid(x1,y1)
-        X2, Y2 = np.meshgrid(x2,y2)
-        Z1.insert(12, '360.0', np.zeros(12))
-        Z1.insert(0, '-30.0', np.zeros(12))
-
-        # New row with different column values
-        new_row = {Z1.columns[0]: 0, Z1.columns[1]: 0 , Z1.columns[2]: 0, Z1.columns[3]: 0, Z1.columns[4]: 0, Z1.columns[5]: 0 , 
-                Z1.columns[6]: 0, Z1.columns[7]: 0, Z1.columns[8]: 0, Z1.columns[9]: 0 , Z1.columns[10]: 0, Z1.columns[11]: 0, Z1.columns[12]: 0, Z1.columns[13]: 0}
-
-        # Convert the new row to a DataFrame
-        new_row_df = pd.DataFrame([new_row])
-
-        # Append the new row to the DataFrame
-        df = pd.concat([Z1, new_row_df])  
-        df = pd.concat([df, new_row_df])              
-        index_list = df.index.tolist()
-        index_list[-1] = 360
-        index_list[-2] = -30
-
-        df.index = index_list
-        df = df.sort_index()
-        Z1 = df
+        Z = pd.pivot_table(joint_phases_wout_nan, index = 'north', columns = 'south', values = 'vals', aggfunc = sum)
+        
+        # Periodic phase wrap at edges of contour plot implemented
+        x1_plot = np.arange(-360, 720, 30)
+        y1_plot = np.arange(-360, 720, 30)
+        X, Y = np.meshgrid(x1_plot, y1_plot)
 
         # 2d histogram - both contours are [0,15, ..., 345]
         fig, ax = plt.subplots(figsize=(10,10))
@@ -327,9 +241,12 @@ def global_phase_figures(lfe_phase_no_nan, dusk_dawn_plots = False):
         ax.set_xlabel("South Phase ($^\circ$)", fontsize = 20)
         ax.set_title(f"Total LFE Phase Distribution \n N = {np.shape(joint_phases_wout_nan)[0]}", fontsize = 20)
 
-        plot1 = ax.contour(X1+15, Y1+15, Z1, levels = 15, cmap = 'spring_r') # Placed in Centers of Bin
-        Z_rev = np.matrix(Z2)[::-1]
-        plot2 = ax.imshow(Z_rev, cmap='Greys_r', extent=[0, 360, 0, 360]) 
+        # Contour wrap at edges taken into account
+        Z_rev = np.matrix(Z)[::1]
+        Z_rev_plot = np.tile(Z_rev, [3,3])
+
+        plot1 = ax.contour(X+15, Y+15, Z_rev_plot, levels = 10, cmap = 'spring_r')
+        plot2 = ax.imshow(Z_rev, cmap='Greys_r', extent=[0, 360, 0, 360], origin = 'lower') 
 
         ax.set_xticks(np.arange(0, 360, 30))
         ax.set_xticklabels(np.arange(0, 360, 30), rotation = 90)
@@ -383,60 +300,36 @@ def local_phase_figures(lfe_phase_no_nan, trajectories_df):
     lfe_phase_no_nan['local south phase'] = local_phase_south
 
     # Create 2-d Histogram of South Local Phases vs North Local Phases for all JOINED LFEs
-    lfe_phase_no_nan['vals1'] = np.ones(np.shape(lfe_phase_no_nan)[0])
-    lfe_phase_no_nan['north1'] = np.ones(np.shape(lfe_phase_no_nan)[0])
-    lfe_phase_no_nan['south1'] = np.ones(np.shape(lfe_phase_no_nan)[0])
-    lfe_phase_no_nan['vals2'] = np.ones(np.shape(lfe_phase_no_nan)[0])
-    lfe_phase_no_nan['north2'] = np.ones(np.shape(lfe_phase_no_nan)[0])
-    lfe_phase_no_nan['south2'] = np.ones(np.shape(lfe_phase_no_nan)[0])
-
-    x1 = np.arange(-30, 390, 30) # Colorful Contours
-    y1 = np.arange(-30, 390, 30)
+    lfe_phase_no_nan['vals'] = np.ones(np.shape(lfe_phase_no_nan)[0])
+    lfe_phase_no_nan['north'] = np.ones(np.shape(lfe_phase_no_nan)[0])
+    lfe_phase_no_nan['south'] = np.ones(np.shape(lfe_phase_no_nan)[0])
     
-    x2 = np.arange(0, 360, 30) # Black/White Filled Contours
-    y2 =np.arange(0, 360, 30) #360
+    x1 = np.arange(0, 360, 30) # Black/White Filled Contours
+    y1 =np.arange(0, 360, 30) #360
 
     for i in range(np.shape(lfe_phase_no_nan)[0]):
-        lfe_phase_no_nan['north1'].iloc[i] = x1[np.where(lfe_phase_no_nan['local north phase'].iloc[i] - x1 >= 0)[0][-1]]
-        lfe_phase_no_nan['south1'].iloc[i] = x1[np.where(lfe_phase_no_nan['local south phase'].iloc[i] - x1 >= 0)[0][-1]]
-        lfe_phase_no_nan['north2'].iloc[i] = x2[np.where(lfe_phase_no_nan['local north phase'].iloc[i] - x2 >= 0)[0][-1]]
-        lfe_phase_no_nan['south2'].iloc[i] = x2[np.where(lfe_phase_no_nan['local south phase'].iloc[i] - x2 >= 0)[0][-1]]
+        lfe_phase_no_nan['north'].iloc[i] = x1[np.where(lfe_phase_no_nan['local north phase'].iloc[i] - x1 >= 0)[0][-1]]
+        lfe_phase_no_nan['south'].iloc[i] = x1[np.where(lfe_phase_no_nan['local south phase'].iloc[i] - x1 >= 0)[0][-1]]
 
-    Z5 = pd.pivot_table(lfe_phase_no_nan, index = 'north1', columns = 'south1', values = 'vals1', aggfunc = sum, fill_value = 0)
-    Z6 = pd.pivot_table(lfe_phase_no_nan, index = 'north2', columns = 'south2', values = 'vals2', aggfunc = sum, fill_value = 0)
+    Z2 = pd.pivot_table(lfe_phase_no_nan, index = 'north', columns = 'south', values = 'vals', aggfunc = sum, fill_value = 0)
 
-    X1, Y1 = np.meshgrid(x1,y1)
-    X2, Y2 = np.meshgrid(x2,y2)
-    Z5.insert(12, '360.0', np.zeros(12))
-    Z5.insert(0, '-30.0', np.zeros(12))
-
-    # New row with different column values
-    new_row = {Z5.columns[0]: 0, Z5.columns[1]: 0 , Z5.columns[2]: 0, Z5.columns[3]: 0, Z5.columns[4]: 0, Z5.columns[5]: 0 , 
-            Z5.columns[6]: 0, Z5.columns[7]: 0, Z5.columns[8]: 0, Z5.columns[9]: 0 , Z5.columns[10]: 0, Z5.columns[11]: 0, Z5.columns[12]: 0, Z5.columns[13]: 0}
-
-    # Convert the new row to a DataFrame
-    new_row_df = pd.DataFrame([new_row])
-
-    # Append the new row to the DataFrame
-    df = pd.concat([Z5, new_row_df])  
-    df = pd.concat([df, new_row_df])              
-    index_list = df.index.tolist()
-    index_list[-1] = 360
-    index_list[-2] = -30
-
-    df.index = index_list
-    df = df.sort_index()
-    Z5 = df
-
+    # Periodic phase wrap at edges of contour plot implemented
+    x1_plot = np.arange(-360, 720, 30)
+    y1_plot = np.arange(-360, 720, 30)
+    X, Y = np.meshgrid(x1_plot, y1_plot)
+    
     # 2d histogram - both contours are [0,15, ..., 345]
     fig, ax = plt.subplots(figsize=(10,10))
     ax.set_ylabel("North Local Phase ($^\circ$)", fontsize = 20)
     ax.set_xlabel("South Local Phase ($^\circ$)", fontsize = 20)
     ax.set_title(f"SPICE-based LFE Phase Distribution \n N = {np.shape(lfe_phase_no_nan)[0]}", fontsize = 20)
 
-    plot1 = ax.contour(X1+15, Y1+15, Z5, levels = 15, cmap = 'spring_r')
-    Z_rev = np.matrix(Z6)[::-1]
-    plot2 = ax.imshow(Z_rev, cmap='Greys_r', extent=[0, 360, 0, 360]) 
+    # Contour wrap at edges taken into account
+    Z_rev = np.matrix(Z2)[::1]
+    Z_rev_plot = np.tile(Z_rev, [3,3])
+
+    plot1 = ax.contour(X+15, Y+15, Z_rev_plot, levels = 10, cmap = 'spring_r')
+    plot2 = ax.imshow(Z_rev, cmap='Greys_r', extent=[0, 360, 0, 360], origin = 'lower')
 
     ax.set_xticks(np.arange(0, 360, 30))
     ax.set_xticklabels(np.arange(0, 360, 30), rotation = 90)
